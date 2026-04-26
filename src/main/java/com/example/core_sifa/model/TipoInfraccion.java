@@ -25,11 +25,11 @@ public class TipoInfraccion {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id_tipo_infraccion;
+    private Integer idTipoInfraccion;
 
     @NotBlank
     @Column(nullable = false)
-    private String descripcion;
+    private String nombre;
 
     @OneToMany(mappedBy = "tipo_infraccion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Infraccion> infracciones;

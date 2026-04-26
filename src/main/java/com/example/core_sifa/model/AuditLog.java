@@ -28,11 +28,11 @@ public class AuditLog {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id_audit_log;
+    private Integer idAuditLog;
 
     @NotNull
     @Column(nullable = false)
-    private UUID id_usuario;
+    private String emailUsuario;
 
     @NotBlank
     @Column(nullable = false)
@@ -40,11 +40,11 @@ public class AuditLog {
 
     @NotBlank
     @Column(nullable = false)
-    private String tabla_afectada;
+    private String tablaAfectada;
 
     @NotNull
     @Column(nullable = false)
-    private Integer id_registro_afectado;
+    private Integer idRegistroAfectado;
 
     // No existe un dato natiivo JSON, se usa el par clave valor para flexibilidad
     @JdbcTypeCode(org.hibernate.type.SqlTypes.JSON) // traductor necesario para el traspaso del dato entre la bd y java
@@ -54,6 +54,6 @@ public class AuditLog {
 
     @NotNull
     @Column(nullable = false)
-    private LocalDateTime fecha_hora;
+    private LocalDateTime fechaHora;
 
 }

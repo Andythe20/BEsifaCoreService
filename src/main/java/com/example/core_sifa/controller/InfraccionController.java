@@ -1,0 +1,84 @@
+package com.example.core_sifa.controller;
+
+import com.example.core_sifa.dto.infraccion.InfraccionCreateRequest;
+import com.example.core_sifa.dto.infraccion.InfraccionResponse;
+import com.example.core_sifa.dto.infraccion.InfraccionUpdateRequest;
+import com.example.core_sifa.service.InfraccionService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/core/api/v1/infracciones")
+@RequiredArgsConstructor
+@Slf4j
+public class InfraccionController {
+
+    private final InfraccionService infraccionService;
+
+    @GetMapping("/all")
+    public ResponseEntity<List<InfraccionResponse>> getAllInfracciones() {
+        log.info("Obteniendo todas las infracciones");
+        List<InfraccionResponse> infracciones = infraccionService.findAllInfracciones();
+
+        if (infracciones.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(infracciones);
+    }
+
+    @GetMapping("/id/{id}")
+    public ResponseEntity<InfraccionResponse> getInfraccionById(@PathVariable Integer id) {
+        log.info("Obteniendo infraccion con id: {}", id);
+        InfraccionResponse infraccion = infraccionService.findById(id);
+        return ResponseEntity.ok(infraccion);
+    }
+
+    @GetMapping("/fiscalizador/{idFiscalizador}")
+    public ResponseEntity<List<InfraccionResponse>> getInfraccionesByIdFiscalizador(@PathVariable UUID idFiscalizador) {
+        log.info("Obteniendo infracciones por el id del fiscalizador: {}", idFiscalizador);
+        List<InfraccionResponse> infracciones = infraccionService.findByIdFiscalizador(idFiscalizador);
+        return ResponseEntity.ok(infracciones);
+    }
+
+    @GetMapping("/vehiculo/{vehiculoPatente}")
+    public ResponseEntity<List<InfraccionResponse>> getInfraccionesByVehiculoPatente(@PathVariable String vehiculoPatente) {
+        log.info("Obteniendo infracciones por la patente: {}", vehiculoPatente);
+        List<InfraccionResponse> infracciones = infraccionService.findByVehiculoPatente(vehiculoPatente);
+        return ResponseEntity.ok(infracciones);
+    }
+
+    @PostMapping
+    public ResponseEntity<InfraccionResponse> crearInfraccion(
+            @Valid @RequestBody InfraccionCreateRequest request,
+            @RequestHeader("X-Auth-User") String idFiscalizador) {
+
+        log.info("Petición de creación de infracción recibida desde el Gateway. Fiscalizador ID: {}", idFiscalizador);
+
+        InfraccionResponse nuevaInfraccion = infraccionService.crearInfraccion(request, idFiscalizador);
+
+        // Devolvemos un 201 CREATED, que es el estándar REST para recursos nuevos
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevaInfraccion);
+    }
+
+    @PutMapping("/{id}/procesar")
+    public ResponseEntity<InfraccionResponse> procesarInfraccion(
+            @PathVariable Integer id,
+            @Valid @RequestBody InfraccionUpdateRequest request,
+            @RequestHeader("X-Auth-User") String idAdministrativoJpl) {
+
+        log.info("Petición para procesar infracción ID: {} recibida. Administrativo JPL ID: {}", id, idAdministrativoJpl);
+
+        InfraccionResponse infraccionActualizada = infraccionService.procesarInfraccionPorJpl(id, request, idAdministrativoJpl);
+
+        // Devolvemos un 200 OK con el recurso actualizado
+        return ResponseEntity.ok(infraccionActualizada);
+    }
+}

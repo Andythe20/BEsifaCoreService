@@ -31,15 +31,14 @@ public class Infraccion {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id_infraccion;
+    private Integer idInfraccion;
 
-    @NotNull
-    @Column(nullable = false)
-    private UUID id_usuario_jpl;
+    @Column(nullable = true)
+    private String idUsuarioJpl;
 
-    @NotNull
+    @NotBlank
     @Column(nullable = false)
-    private UUID id_fiscalizador;
+    private String idFiscalizador;
 
     @Column(nullable = true)
     private String observaciones;
@@ -57,10 +56,10 @@ public class Infraccion {
     private String estado;
 
     @Column(nullable = true)
-    private String motivo_rechazo;
+    private String motivoRechazo;
 
     @Column(nullable = true)
-    private LocalDateTime fecha_resolucion;
+    private LocalDateTime fechaResolucion;
 
     @NotNull
     @Column(nullable = false)
@@ -75,7 +74,7 @@ public class Infraccion {
 
     @ManyToOne
     @JoinColumn(name = "id_tipo_infraccion")
-    private TipoInfraccion tipo_infraccion;
+    private TipoInfraccion tipoInfraccion;
 
     @OneToOne(mappedBy = "infraccion", cascade = CascadeType.ALL)
     private Citacion citacion;
