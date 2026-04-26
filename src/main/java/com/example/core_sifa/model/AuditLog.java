@@ -32,7 +32,7 @@ public class AuditLog {
 
     @NotNull
     @Column(nullable = false)
-    private UUID id_usuario;
+    private String email_usuario;
 
     @NotBlank
     @Column(nullable = false)

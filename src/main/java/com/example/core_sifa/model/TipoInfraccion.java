@@ -29,7 +29,7 @@ public class TipoInfraccion {
 
     @NotBlank
     @Column(nullable = false)
-    private String descripcion;
+    private String nombre;
 
     @OneToMany(mappedBy = "tipo_infraccion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Infraccion> infracciones;
