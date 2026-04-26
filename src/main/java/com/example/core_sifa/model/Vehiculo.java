@@ -38,7 +38,7 @@ public class Vehiculo {
 
     @NotNull
     @Column(nullable = false)
-    private Integer anio_fabricacion;
+    private Integer anioFabricacion;
 
     @NotBlank
     @Column(nullable = false)
@@ -46,17 +46,17 @@ public class Vehiculo {
 
     @NotBlank
     @Column(nullable = false)
-    private String nro_motor;
+    private String nroMotor;
 
     @NotBlank
     @Column(nullable = false)
-    private String nro_serie;
+    private String nroSerie;
 
     @OneToMany(mappedBy = "vehiculo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Infraccion> infracciones;
 
     @ManyToOne
     @JoinColumn(name = "id_propietario_vehiculo")
-    private PropietarioVehiculo propietario_vehiculo;
+    private PropietarioVehiculo propietarioVehiculo;
 
 }

@@ -1,6 +1,5 @@
-package com.example.core_sifa.dto.Citacion;
+package com.example.core_sifa.dto.citacion;
 
-import com.example.core_sifa.model.Citacion;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -14,6 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CitacionCreateRequest {
     private LocalDateTime fecha;
-    private Integer id_infraccion;
+    private Integer idInfraccion;
 
 }

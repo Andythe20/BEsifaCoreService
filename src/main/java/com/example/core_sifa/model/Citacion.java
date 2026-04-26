@@ -25,7 +25,7 @@ public class Citacion {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id_citacion;
+    private Integer idCitacion;
 
     @NotNull
     @Column(nullable = false)

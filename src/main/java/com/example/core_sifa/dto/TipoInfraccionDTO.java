@@ -15,7 +15,7 @@ public class TipoInfraccionDTO {
 
     public static TipoInfraccionDTO fromEntity(TipoInfraccion tipoInfraccion) {
         return TipoInfraccionDTO.builder()
-                .id(tipoInfraccion.getId_tipo_infraccion())
+                .id(tipoInfraccion.getIdTipoInfraccion())
                 .nombre(tipoInfraccion.getNombre())
                 .build();
     }

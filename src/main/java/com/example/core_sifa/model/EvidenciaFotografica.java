@@ -24,7 +24,7 @@ public class EvidenciaFotografica {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id_evidencia_fotografica;
+    private Integer idEvidenciaFotografica;
 
     @NotBlank
     @Column(nullable = false)

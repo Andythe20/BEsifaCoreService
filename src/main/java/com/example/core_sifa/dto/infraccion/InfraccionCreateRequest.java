@@ -1,5 +1,6 @@
 package com.example.core_sifa.dto.infraccion;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,9 @@ public class InfraccionCreateRequest {
     @NotBlank(message = "El lugar de la infracción no puede estar vacío")
     private String lugar;
 
+    @NotNull(message = "La fecha de la infracción no puede estar vacío y debe tener un formato válido")
+    private LocalDateTime fecha;
+
     @NotNull(message = "La latitud es obligatoria")
     private Float latitud;
 
@@ -34,7 +38,7 @@ public class InfraccionCreateRequest {
     private String patenteVehiculo;
 
     @NotNull(message = "Debe seleccionar un tipo de infracción")
-    private Integer id_tipo_infraccion;
+    private Integer idTipoInfraccion;
 
     // Observaciones (Opcional)
     private String observaciones;

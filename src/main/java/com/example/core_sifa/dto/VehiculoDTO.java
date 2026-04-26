@@ -25,12 +25,12 @@ public class VehiculoDTO {
                 .patente(vehiculo.getPatente())
                 .marca(vehiculo.getMarca())
                 .modelo(vehiculo.getModelo())
-                .anio_fabricacion(vehiculo.getAnio_fabricacion())
+                .anio_fabricacion(vehiculo.getAnioFabricacion())
                 .color(vehiculo.getColor())
-                .nro_motor(vehiculo.getNro_motor())
-                .nro_serie(vehiculo.getNro_serie())
-                .propietario(vehiculo.getPropietario_vehiculo().getNombres() + " " + vehiculo.getPropietario_vehiculo().getApellidos())
-                .rut(vehiculo.getPropietario_vehiculo().getRut())
+                .nro_motor(vehiculo.getNroMotor())
+                .nro_serie(vehiculo.getNroSerie())
+                .propietario(vehiculo.getPropietarioVehiculo().getNombres() + " " + vehiculo.getPropietarioVehiculo().getApellidos())
+                .rut(vehiculo.getPropietarioVehiculo().getRut())
                 .build();
     }
 }

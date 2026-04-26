@@ -21,12 +21,12 @@ public class AuditLogDTO {
 
     public static AuditLogDTO fromEntity(AuditLog auditLog){
         return AuditLogDTO.builder()
-                .email_usuario(auditLog.getEmail_usuario())
+                .email_usuario(auditLog.getEmailUsuario())
                 .accion(auditLog.getAccion())
-                .tabla_afectada(auditLog.getTabla_afectada())
-                .id_registro_afectado(auditLog.getId_registro_afectado())
+                .tabla_afectada(auditLog.getTablaAfectada())
+                .id_registro_afectado(auditLog.getIdRegistroAfectado())
                 .detalles(auditLog.getDetalles())
-                .fecha_hora(auditLog.getFecha_hora())
+                .fecha_hora(auditLog.getFechaHora())
                 .build();
     }
 }

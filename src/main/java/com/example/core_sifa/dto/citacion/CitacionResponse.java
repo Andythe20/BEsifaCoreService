@@ -1,4 +1,4 @@
-package com.example.core_sifa.dto.Citacion;
+package com.example.core_sifa.dto.citacion;
 
 import com.example.core_sifa.model.Citacion;
 import lombok.*;
@@ -12,15 +12,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CitacionResponse {
 
-    private Integer id_citacion;
+    private Integer idCitacion;
     private LocalDateTime fecha;
-    private Integer id_infraccion;
+    private Integer idInfraccion;
 
     public static CitacionResponse fromEntity(Citacion citacion) {
         return CitacionResponse.builder()
-                .id_citacion(citacion.getId_citacion())
+                .idCitacion(citacion.getIdCitacion())
                 .fecha(citacion.getFecha())
-                .id_infraccion(citacion.getInfraccion().getId_infraccion())
+                .idInfraccion(citacion.getInfraccion().getIdInfraccion())
                 .build();
     }
 

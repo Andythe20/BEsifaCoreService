@@ -25,7 +25,7 @@ public class TipoInfraccion {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id_tipo_infraccion;
+    private Integer idTipoInfraccion;
 
     @NotBlank
     @Column(nullable = false)

@@ -47,7 +47,7 @@ public class PropietarioVehiculo {
     private String profesion;
 
     @Column(nullable = false)
-    private String estado_civil;
+    private String estadoCivil;
 
     @OneToMany(mappedBy = "propietario_vehiculo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Vehiculo> vehiculos;
