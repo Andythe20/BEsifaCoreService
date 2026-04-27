@@ -104,7 +104,7 @@ Los logs se generan en:
 
 - `logs/core-sifa.log`
 
-## Soluci�n r�pida de problemas
+## Solución rápida de problemas
 
 - Error 400 (`MethodArgumentTypeMismatchException`): Asegúrate de enviar un texto (correo) en lugar de un UUID si consumes rutas dinámicas.
 - Error 401 (`Unauthorized`): Si usas Spring Security en el Core, verifica que el archivo SecurityConfig esté permitiendo el tráfico (`permitAll()`), ya que el Gateway hace la autenticación.
