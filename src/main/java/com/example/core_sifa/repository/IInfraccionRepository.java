@@ -11,7 +11,7 @@ import java.util.UUID;
 public interface IInfraccionRepository extends JpaRepository<Infraccion, Integer> {
 
     // Para buscar todas las infracciones que hizo un usuario en terreno
-    List<Infraccion> findByIdFiscalizador(UUID idFiscalizador);
+    List<Infraccion> findByIdFiscalizador(String idFiscalizador);
 
     // Para ver el historial de multas de un vehículo navegando por la relación
     List<Infraccion> findByVehiculoPatente(String vehiculoPatente);

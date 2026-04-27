@@ -42,7 +42,7 @@ public class InfraccionController {
     }
 
     @GetMapping("/fiscalizador/{idFiscalizador}")
-    public ResponseEntity<List<InfraccionResponse>> getInfraccionesByIdFiscalizador(@PathVariable UUID idFiscalizador) {
+    public ResponseEntity<List<InfraccionResponse>> getInfraccionesByIdFiscalizador(@PathVariable String idFiscalizador) {
         log.info("Obteniendo infracciones por el id del fiscalizador: {}", idFiscalizador);
         List<InfraccionResponse> infracciones = infraccionService.findByIdFiscalizador(idFiscalizador);
         return ResponseEntity.ok(infracciones);

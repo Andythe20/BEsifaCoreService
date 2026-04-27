@@ -32,6 +32,6 @@ public class EvidenciaFotografica {
 
     @ManyToOne
     @NotNull
-    @JoinColumn(name = "id_infraccion")
+    @JoinColumn(name = "idInfraccion")
     private Infraccion infraccion;
 }

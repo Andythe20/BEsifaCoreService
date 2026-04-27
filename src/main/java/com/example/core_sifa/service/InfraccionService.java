@@ -46,7 +46,7 @@ public class InfraccionService {
     }
 
     @Transactional(readOnly = true)
-    public List<InfraccionResponse> findByIdFiscalizador(UUID idFiscalizador) {
+    public List<InfraccionResponse> findByIdFiscalizador(String idFiscalizador) {
         log.info("Buscando infracciones por id Fiscalizador: {}", idFiscalizador);
 
         List<Infraccion> listaInfracciones = infraccionRepository.findByIdFiscalizador(idFiscalizador);

@@ -73,14 +73,14 @@ public class Infraccion {
     private List<EvidenciaFotografica> evidenciasFotograficas;
 
     @ManyToOne
-    @JoinColumn(name = "id_tipo_infraccion")
+    @JoinColumn(name = "idTipoInfraccion")
     private TipoInfraccion tipoInfraccion;
 
     @OneToOne(mappedBy = "infraccion", cascade = CascadeType.ALL)
     private Citacion citacion;
 
     @ManyToOne
-    @JoinColumn(name = "id_vehiculo")
+    @JoinColumn(name = "idVehiculo")
     private Vehiculo vehiculo;
 
 }
