@@ -32,6 +32,6 @@ public class Citacion {
     private LocalDateTime fecha;
 
     @OneToOne
-    @JoinColumn(name = "id_infraccion", nullable = false, unique = true)
+    @JoinColumn(name = "idInfraccion", nullable = false, unique = true)
     private Infraccion infraccion;
 }

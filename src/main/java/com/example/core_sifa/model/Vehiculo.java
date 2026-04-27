@@ -56,7 +56,7 @@ public class Vehiculo {
     private List<Infraccion> infracciones;
 
     @ManyToOne
-    @JoinColumn(name = "id_propietario_vehiculo")
+    @JoinColumn(name = "idPropietarioVehiculo")
     private PropietarioVehiculo propietarioVehiculo;
 
 }

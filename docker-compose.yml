@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Servicio de MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: core_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_segura
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - core_mysql_data:/var/lib/mysql
+    networks:
+      - sifa-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password_segura"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio de la API Auth
+  core-sifa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: core-sifa
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      # Database
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # App
+      SERVER_PORT: 8080
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - sifa-network
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/core/api/v1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # ← Aumentar tiempo de inicio
+
+volumes:
+  core_mysql_data:
+    driver: local
+
+networks:
+  sifa-network:
+    external: true  # ← Indicar que es externa
