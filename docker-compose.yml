@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # Servicio de MySQL
-  mysql:
+  core_mysql:
     image: mysql:8.0
     container_name: core_mysql
     restart: unless-stopped
@@ -34,8 +34,8 @@ services:
       - "8083:8080"
     environment:
       # Database
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -44,7 +44,7 @@ services:
       SERVER_PORT: 8080
 
     depends_on:
-      mysql:
+      core_mysql:
         condition: service_healthy
     networks:
       - sifa-network
