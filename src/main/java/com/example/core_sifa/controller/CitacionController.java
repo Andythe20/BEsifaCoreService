@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,6 +20,7 @@ public class CitacionController {
 
     private final CitacionService citacionService;
 
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/{id}")
     public ResponseEntity<CitacionResponse> getCitacionById(@PathVariable Integer id) {
         log.info("Petición GET para citación ID: {}", id);
@@ -28,6 +30,7 @@ public class CitacionController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyAuthority('USER_JPL')")
     @PostMapping
     public ResponseEntity<CitacionResponse> crearCitacion(
             @Valid @RequestBody CitacionCreateRequest request,
@@ -41,6 +44,7 @@ public class CitacionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaCitacion);
     }
 
+    @PreAuthorize("hasAnyAuthority('USER_JPL')")
     @PutMapping("/{id}")
     public ResponseEntity<CitacionResponse> actualizarCitacion(
             @PathVariable Integer id,

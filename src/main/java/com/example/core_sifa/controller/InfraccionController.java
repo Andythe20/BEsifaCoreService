@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class InfraccionController {
 
     private final InfraccionService infraccionService;
 
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/all")
     public ResponseEntity<List<InfraccionResponse>> getAllInfracciones() {
         log.info("Obteniendo todas las infracciones");
@@ -34,6 +36,7 @@ public class InfraccionController {
         return ResponseEntity.ok(infracciones);
     }
 
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/id/{id}")
     public ResponseEntity<InfraccionResponse> getInfraccionById(@PathVariable Integer id) {
         log.info("Obteniendo infraccion con id: {}", id);
@@ -41,6 +44,7 @@ public class InfraccionController {
         return ResponseEntity.ok(infraccion);
     }
 
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/fiscalizador/{idFiscalizador}")
     public ResponseEntity<List<InfraccionResponse>> getInfraccionesByIdFiscalizador(@PathVariable String idFiscalizador) {
         log.info("Obteniendo infracciones por el id del fiscalizador: {}", idFiscalizador);
@@ -48,6 +52,7 @@ public class InfraccionController {
         return ResponseEntity.ok(infracciones);
     }
 
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/vehiculo/{vehiculoPatente}")
     public ResponseEntity<List<InfraccionResponse>> getInfraccionesByVehiculoPatente(@PathVariable String vehiculoPatente) {
         log.info("Obteniendo infracciones por la patente: {}", vehiculoPatente);
@@ -55,6 +60,7 @@ public class InfraccionController {
         return ResponseEntity.ok(infracciones);
     }
 
+    @PreAuthorize("hasAnyAuthority('USER_APP')")
     @PostMapping
     public ResponseEntity<InfraccionResponse> crearInfraccion(
             @Valid @RequestBody InfraccionCreateRequest request,
@@ -68,6 +74,7 @@ public class InfraccionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaInfraccion);
     }
 
+    @PreAuthorize("hasAnyAuthority('USER_JPL')")
     @PutMapping("/{id}/procesar")
     public ResponseEntity<InfraccionResponse> procesarInfraccion(
             @PathVariable Integer id,
