@@ -3,6 +3,7 @@ package com.example.core_sifa.service;
 import com.example.core_sifa.dto.citacion.CitacionCreateRequest;
 import com.example.core_sifa.dto.citacion.CitacionResponse;
 import com.example.core_sifa.dto.citacion.CitacionUpdateRequest;
+import com.example.core_sifa.exception.ResourceNotFoundException;
 import com.example.core_sifa.model.Citacion;
 import com.example.core_sifa.model.Infraccion;
 import com.example.core_sifa.repository.ICitacionRepository;
@@ -26,7 +27,7 @@ public class CitacionService {
 
         // Validar que la infracción exista
         Infraccion infraccion = infraccionRepository.findById(request.getIdInfraccion())
-                .orElseThrow(() -> new IllegalArgumentException("Infracción no encontrada con ID: " + request.getIdInfraccion()));
+                .orElseThrow(() -> new ResourceNotFoundException("Infracción no encontrada con ID: " + request.getIdInfraccion()));
 
         // Validar que la infraccion esté aprobada antes de generar una citación
         if (!"APROBADA".equalsIgnoreCase(infraccion.getEstado())) {
@@ -58,7 +59,7 @@ public class CitacionService {
 
         // Buscar la citacion
         Citacion citacion = citacionRepository.findById(idCitacion)
-                .orElseThrow(() -> new IllegalArgumentException("Citación no encontrada con ID: " + idCitacion));
+                .orElseThrow(() -> new ResourceNotFoundException("Citación no encontrada con ID: " + idCitacion));
 
         // No se puede cambiar la fecha si la cita original ya ocurrió en el pasado
         if (citacion.getFecha().isBefore(java.time.LocalDateTime.now())) {
@@ -85,7 +86,7 @@ public class CitacionService {
     public CitacionResponse findById(Integer idCitacion) {
         log.info("Buscando citación con ID: {}", idCitacion);
         Citacion citacion = citacionRepository.findById(idCitacion)
-                .orElseThrow(() -> new IllegalArgumentException("Citación no encontrada con ID: " + idCitacion));
+                .orElseThrow(() -> new ResourceNotFoundException("Citación no encontrada con ID: " + idCitacion));
 
         return CitacionResponse.fromEntity(citacion);
     }

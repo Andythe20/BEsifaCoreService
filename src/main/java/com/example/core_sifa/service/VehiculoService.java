@@ -1,6 +1,7 @@
 package com.example.core_sifa.service;
 
 import com.example.core_sifa.dto.VehiculoDTO;
+import com.example.core_sifa.exception.ResourceNotFoundException;
 import com.example.core_sifa.model.Vehiculo;
 import com.example.core_sifa.repository.IVehiculoRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class VehiculoService {
     public VehiculoDTO findById(String id) {
         log.info("Buscando vehículo con id: {}", id);
         Vehiculo vehiculo = vehiculoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Vehículo no encontrado o inexistente"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado o inexistente"));
 
         return VehiculoDTO.fromEntity(vehiculo);
     }

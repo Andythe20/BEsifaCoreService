@@ -3,6 +3,7 @@ package com.example.core_sifa.service;
 import com.example.core_sifa.dto.infraccion.InfraccionCreateRequest;
 import com.example.core_sifa.dto.infraccion.InfraccionResponse;
 import com.example.core_sifa.dto.infraccion.InfraccionUpdateRequest;
+import com.example.core_sifa.exception.ResourceNotFoundException;
 import com.example.core_sifa.model.EvidenciaFotografica;
 import com.example.core_sifa.model.Infraccion;
 import com.example.core_sifa.repository.IInfraccionRepository;
@@ -40,7 +41,7 @@ public class InfraccionService {
     public InfraccionResponse findById(Integer idInfraccion) {
         log.info("Buscando infraccion con id: {}", idInfraccion);
         Infraccion infraccion = infraccionRepository.findById(idInfraccion)
-                .orElseThrow(() -> new IllegalArgumentException("Infraccion no encontrada o inexistente"));
+                .orElseThrow(() -> new ResourceNotFoundException("Infraccion no encontrada o inexistente"));
 
         return InfraccionResponse.fromEntity(infraccion);
     }
@@ -73,7 +74,7 @@ public class InfraccionService {
 
         // Validar que el vehículo exista
         var vehiculo = vehiculoRepository.findById(request.getPatenteVehiculo())
-                .orElseThrow(() -> new IllegalArgumentException("Vehículo no encontrado con patente: " + request.getPatenteVehiculo()));
+                .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado con patente: " + request.getPatenteVehiculo()));
 
         // Validar que el tipo de infracción sea correcto
         var tipoInfraccion = tipoInfraccionRepository.findById(request.getIdTipoInfraccion())
@@ -118,7 +119,7 @@ public class InfraccionService {
 
         // Buscar la infracción existente
         Infraccion infraccion = infraccionRepository.findById(idInfraccion)
-                .orElseThrow(() -> new IllegalArgumentException("Infracción no encontrada con ID: " + idInfraccion));
+                .orElseThrow(() -> new ResourceNotFoundException("Infracción no encontrada con ID: " + idInfraccion));
 
         // Validar que no se intente reprocesar una infracción ya cerrada
         if ("APROBADA".equalsIgnoreCase(infraccion.getEstado()) || "RECHAZADA".equalsIgnoreCase(infraccion.getEstado())) {

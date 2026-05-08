@@ -1,6 +1,7 @@
 package com.example.core_sifa.service;
 
 import com.example.core_sifa.dto.AuditLogDTO;
+import com.example.core_sifa.exception.ResourceNotFoundException;
 import com.example.core_sifa.model.AuditLog;
 import com.example.core_sifa.repository.IAuditLogRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,7 @@ public class AuditLogService {
     public AuditLogDTO findById(Integer id){
         log.info("Buscando auditoria con id: {}", id);
         AuditLog auditLog = auditLogRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Auditoría no encontrada o inexistente"));
+                .orElseThrow(() -> new ResourceNotFoundException("Auditoría no encontrada o inexistente"));
 
         return AuditLogDTO.fromEntity(auditLog);
     }
