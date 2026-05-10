@@ -16,6 +16,10 @@ RUN mvn clean package -DskipTests
 # -------- STAGE 2: Runtime --------
 FROM eclipse-temurin:21-jdk-alpine
 
+# Instalar tzdata para configurar la zona horaria en Alpine
+RUN apk add --no-cache tzdata
+ENV TZ=America/Santiago
+
 WORKDIR /app
 
 # Copiar el jar generado desde el stage anterior
@@ -25,4 +29,4 @@ COPY --from=builder /app/target/core-sifa-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 
 # Ejecutar la app
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]

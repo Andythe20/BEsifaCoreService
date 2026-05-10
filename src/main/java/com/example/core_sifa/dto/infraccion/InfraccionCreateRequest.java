@@ -23,6 +23,7 @@ public class InfraccionCreateRequest {
     @NotBlank(message = "El lugar de la infracción no puede estar vacío")
     private String lugar;
 
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
     @NotNull(message = "La fecha de la infracción no puede estar vacío y debe tener un formato válido")
     private LocalDateTime fecha;
 
