@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -69,7 +70,7 @@ public class InfraccionService {
     }
 
     @Transactional
-    public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, String idFiscalizador) {
+    public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, List<MultipartFile> fotos, String idFiscalizador) {
         log.info("Iniciando creación de infracción para patente: {}", request.getPatenteVehiculo());
 
         // Validar que el vehículo exista
@@ -95,13 +96,17 @@ public class InfraccionService {
                 // citacion queda en null inicialmente
                 .build();
 
-        // Transformar las URLs del request a Entidades de Evidencia Fotográfica
-        List<EvidenciaFotografica> evidencias = request.getUrlsEvidencias().stream()
-                .map(url -> EvidenciaFotografica.builder()
-                        .url(url)
-                        .infraccion(nuevaInfraccion) // Establecemos la relación bidireccional
-                        .build())
-                .collect(Collectors.toList());
+        // Procesar los archivos recibidos
+        List<EvidenciaFotografica> evidencias = fotos.stream().map(foto -> {
+            // 1. Aquí llamarías a tu servicio de AWS S3:
+            // String urlS3 = s3Service.uploadFile(foto);
+            String urlS3 = "https://s3.aws.com/bucket/" + foto.getOriginalFilename(); // Mock de la URL
+
+            return EvidenciaFotografica.builder()
+                    .url(urlS3)
+                    .infraccion(nuevaInfraccion)
+                    .build();
+        }).collect(Collectors.toList());
 
         nuevaInfraccion.setEvidenciasFotograficas(evidencias);
 

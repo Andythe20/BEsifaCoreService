@@ -44,8 +44,4 @@ public class InfraccionCreateRequest {
     // Observaciones (Opcional)
     private String observaciones;
 
-    // Evidencias (Depende de cómo manejes las imágenes)
-    @NotNull(message = "Debe incluir al menos una evidencia fotográfica")
-    @Size(min = 1, message = "Debe subir al menos una foto")
-    private List<String> urlsEvidencias;
 }
