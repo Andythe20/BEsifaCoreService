@@ -15,9 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,7 +26,7 @@ public class InfraccionService {
         private final IInfraccionRepository infraccionRepository;
         private final IVehiculoRepository vehiculoRepository;
         private final ITipoInfraccionRepository tipoInfraccionRepository;
-        private final IStorageService s3Service;
+        private final IStorageService storageService;
 
         @Transactional(readOnly = true)
         public List<InfraccionResponse> findAllInfracciones() {
@@ -73,29 +71,23 @@ public class InfraccionService {
         }
 
         @Transactional
-        public InfraccionResponse crearInfraccion(
-                        InfraccionCreateRequest request,
-                        List<MultipartFile> fotos,
+        public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, List<MultipartFile> fotos,
                         String idFiscalizador) {
-
-                log.info("Iniciando creación de infracción para patente: {}",
-                                request.getPatenteVehiculo());
+                log.info("Iniciando creación de infracción para patente: {}", request.getPatenteVehiculo());
 
                 // Validar que el vehículo exista
                 var vehiculo = vehiculoRepository.findById(request.getPatenteVehiculo())
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Vehículo no encontrado con patente: "
-                                                                + request.getPatenteVehiculo()));
+                                                "Vehículo no encontrado con patente: " + request.getPatenteVehiculo()));
 
                 // Validar que el tipo de infracción sea correcto
                 var tipoInfraccion = tipoInfraccionRepository.findById(request.getIdTipoInfraccion())
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "Tipo de infracción no válido"));
+                                .orElseThrow(() -> new IllegalArgumentException("Tipo de infracción no válido"));
 
                 // Construir la entidad base
                 Infraccion nuevaInfraccion = Infraccion.builder()
-                                .idFiscalizador(idFiscalizador)
-                                .idUsuarioJpl(null)
+                                .idFiscalizador(idFiscalizador) // Viene del API Gateway (Extraído en el Controller)
+                                .idUsuarioJpl(null) // Aún no asignado
                                 .lugar(request.getLugar())
                                 .latitud(request.getLatitud())
                                 .longitud(request.getLongitud())
@@ -104,47 +96,38 @@ public class InfraccionService {
                                 .estado("EN PROCESO")
                                 .vehiculo(vehiculo)
                                 .tipoInfraccion(tipoInfraccion)
+                                // citacion queda en null inicialmente
                                 .build();
 
-                // Lista auxiliar para rollback manual de S3
-                List<String> uploadedUrls = new ArrayList<>();
+                // Procesar los archivos recibidos
+                if (fotos == null || fotos.isEmpty()) {
+                        throw new IllegalArgumentException(
+                                        "Es obligatorio adjuntar al menos una fotografía de evidencia.");
+                }
+
+                List<String> uploadedUrls = new java.util.ArrayList<>();
 
                 try {
 
-                        List<EvidenciaFotografica> evidencias = new ArrayList<>();
+                        // Subir archivos usando el storage activo
+                        // dev -> mock
+                        // prod -> S3 real
+                        List<String> urls = storageService.uploadFiles(
+                                        fotos,
+                                        request.getPatenteVehiculo());
 
-                        // Procesar imágenes manualmente
-                        for (int i = 0; i < fotos.size(); i++) {
+                        uploadedUrls.addAll(urls);
 
-                                MultipartFile foto = fotos.get(i);
-
-                                // Nombre limpio:
-                                // ABCD11_1.jpg
-                                // ABCD11_2.jpg
-                                String nombreArchivo = request.getPatenteVehiculo()
-                                                + "_"
-                                                + (i + 1);
-
-                                // Subir archivo a S3
-                                String urlS3 = s3Service.uploadFile(
-                                                foto,
-                                                nombreArchivo);
-
-                                // Guardar URL por si hay rollback
-                                uploadedUrls.add(urlS3);
-
-                                // Crear evidencia
-                                EvidenciaFotografica evidencia = EvidenciaFotografica.builder()
-                                                .url(urlS3)
-                                                .infraccion(nuevaInfraccion)
-                                                .build();
-
-                                evidencias.add(evidencia);
-                        }
+                        List<EvidenciaFotografica> evidencias = urls.stream()
+                                        .map(url -> EvidenciaFotografica.builder()
+                                                        .url(url)
+                                                        .infraccion(nuevaInfraccion)
+                                                        .build())
+                                        .collect(Collectors.toList());
 
                         nuevaInfraccion.setEvidenciasFotograficas(evidencias);
 
-                        // Guardar en BD
+                        // Guardar en base de datos
                         Infraccion infraccionGuardada = infraccionRepository.save(nuevaInfraccion);
 
                         log.info("Infracción creada exitosamente con ID: {}",
@@ -154,26 +137,28 @@ public class InfraccionService {
 
                 } catch (Exception e) {
 
-                        log.error(
-                                        "Error creando infracción. Eliminando archivos subidos de S3",
-                                        e);
+                        log.error("Error creando infracción. Rollback archivos storage", e);
 
-                        // Eliminar archivos subidos
+                        // Si falla la BD eliminamos archivos subidos
                         uploadedUrls.forEach(url -> {
                                 try {
-                                        s3Service.deleteFile(url);
-                                } catch (Exception deleteException) {
-
-                                        log.error(
-                                                        "Error eliminando archivo S3: {}",
-                                                        url,
-                                                        deleteException);
+                                        storageService.deleteFile(url);
+                                } catch (Exception ex) {
+                                        log.error("Error eliminando archivo: {}", url, ex);
                                 }
                         });
 
-                        // Relanzar excepción para rollback de BD
                         throw e;
                 }
+
+                //nuevaInfraccion.setEvidenciasFotograficas(evidencias);
+
+                // // Guardar en base de datos
+                // Infraccion infraccionGuardada = infraccionRepository.save(nuevaInfraccion);
+                // log.info("Infracción creada exitosamente con ID: {}", infraccionGuardada.getIdInfraccion());
+
+                // // Retornar el DTO de respuesta
+                // return InfraccionResponse.fromEntity(infraccionGuardada);
         }
 
         @Transactional

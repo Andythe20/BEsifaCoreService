@@ -52,6 +52,9 @@ public class Vehiculo {
     @Column(nullable = false)
     private String nroSerie;
 
+    @Column(nullable = true)
+    private String tipo;
+
     @OneToMany(mappedBy = "vehiculo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Infraccion> infracciones;
 
