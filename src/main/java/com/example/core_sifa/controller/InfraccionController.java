@@ -27,7 +27,7 @@ public class InfraccionController {
 
     private final InfraccionService infraccionService;
 
-    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
+    @PreAuthorize("hasAnyAuthority('USER_APP', 'USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/all")
     public ResponseEntity<List<InfraccionResponse>> getAllInfracciones(
             @RequestParam(required = false)
