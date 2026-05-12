@@ -97,11 +97,14 @@ public class InfraccionService {
                 .build();
 
         // Procesar los archivos recibidos
-        List<EvidenciaFotografica> evidencias = fotos.stream().map(foto -> {
-            // 1. Aquí llamarías a tu servicio de AWS S3:
-            // String urlS3 = s3Service.uploadFile(foto);
-            String urlS3 = "https://s3.aws.com/bucket/" + foto.getOriginalFilename(); // Mock de la URL
+        if (fotos == null || fotos.isEmpty()) {
+            throw new IllegalArgumentException("Es obligatorio adjuntar al menos una fotografía de evidencia.");
+        }
 
+        List<EvidenciaFotografica> evidencias = fotos.stream().map(foto -> {
+            // TODO: Reemplazar con servicio de AWS S3 para producción
+            String urlS3 = "https://s3.aws.com/bucket/" + foto.getOriginalFilename(); 
+                
             return EvidenciaFotografica.builder()
                     .url(urlS3)
                     .infraccion(nuevaInfraccion)
@@ -114,7 +117,7 @@ public class InfraccionService {
         Infraccion infraccionGuardada = infraccionRepository.save(nuevaInfraccion);
         log.info("Infracción creada exitosamente con ID: {}", infraccionGuardada.getIdInfraccion());
 
-        // 6. Retornar el DTO de respuesta
+        // Retornar el DTO de respuesta
         return InfraccionResponse.fromEntity(infraccionGuardada);
     }
 

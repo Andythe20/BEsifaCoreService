@@ -59,6 +59,18 @@ public class Infraccion {
     private String motivoRechazo;
 
     @Column(nullable = true)
+    private String numeroParte;
+
+    @Column(nullable = true)
+    private String numeroBoleta;
+
+    @Column(nullable = true)
+    private Float monto;
+
+    @Column(nullable = true)
+    private String denunciante;
+
+    @Column(nullable = true)
     private LocalDateTime fechaResolucion;
 
     @NotNull

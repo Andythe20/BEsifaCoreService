@@ -33,6 +33,7 @@ public class DataInitializerConfig {
             if (tipoInfraccionRepo.count() == 0) {
                 TipoInfraccion tipoMalEstacionado = TipoInfraccion.builder()
                         .nombre("Mal Estacionado")
+                        .disposicionInfringida("Art. 154, Ley de Tránsito 18.290")
                         .build();
                 tipoInfraccionRepo.save(tipoMalEstacionado);
                 log.info("[+] Tipo de Infracción 'Mal Estacionado' registrado.");
@@ -47,13 +48,13 @@ public class DataInitializerConfig {
                         .rut(rutPropietario)
                         .nombres("MARCELO ALEJANDRO")
                         .apellidos("SEITUN ACUNA")
-                        // Completando campos obligatorios faltantes en el JSON original
-                        .direccion("Sin Información")
+                        .direccion("Avenida Libertad 1250, Depto 402")
                         .comuna("Viña del Mar")
                         .correo("marcelo.seitun@correo.cl")
-                        .telefono("+56900000000")
+                        .telefono("+56987654321")
                         .profesion("Particular")
                         .estadoCivil("Soltero/a")
+                        .edad(42)
                         .build();
 
                 PropietarioVehiculo guardado = propietarioRepo.save(nuevoPropietario);
@@ -70,9 +71,10 @@ public class DataInitializerConfig {
                         .modelo("ALL NEW OUTBACK 2.4T FIEL")
                         .anioFabricacion(2025)
                         .color("BLANCO CRISTAL PERLADO")
+                        .tipo("SUV / Station Wagon")
                         .nroMotor("CS55459")
-                        .nroSerie("JF1BTAL83RG063261") // Corresponde al nro_chasis del JSON
-                        .propietarioVehiculo(propietario) // Establecemos la llave foránea
+                        .nroSerie("JF1BTAL83RG063261")
+                        .propietarioVehiculo(propietario)
                         .build();
 
                 vehiculoRepo.save(vehiculo);

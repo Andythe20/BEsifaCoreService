@@ -31,6 +31,9 @@ public class TipoInfraccion {
     @Column(nullable = false)
     private String nombre;
 
+    @Column(nullable = true)
+    private String disposicionInfringida;
+
     @OneToMany(mappedBy = "tipoInfraccion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Infraccion> infracciones;
 }
