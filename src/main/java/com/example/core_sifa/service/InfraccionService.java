@@ -15,6 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -150,15 +153,6 @@ public class InfraccionService {
 
                         throw e;
                 }
-
-                //nuevaInfraccion.setEvidenciasFotograficas(evidencias);
-
-                // // Guardar en base de datos
-                // Infraccion infraccionGuardada = infraccionRepository.save(nuevaInfraccion);
-                // log.info("Infracción creada exitosamente con ID: {}", infraccionGuardada.getIdInfraccion());
-
-                // // Retornar el DTO de respuesta
-                // return InfraccionResponse.fromEntity(infraccionGuardada);
         }
 
         @Transactional
@@ -201,6 +195,18 @@ public class InfraccionService {
                                 infraccionActualizada.getEstado());
 
                 return InfraccionResponse.fromEntity(infraccionActualizada);
+        }
+
+        @Transactional
+        public List<InfraccionResponse> findByDate(LocalDate date) {
+                LocalDateTime startOfDay = date.atStartOfDay();
+                LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+
+                return infraccionRepository
+                        .findByFechaBetween(startOfDay, endOfDay)
+                        .stream()
+                        .map(InfraccionResponse::fromEntity)
+                        .toList();
         }
 
 }
