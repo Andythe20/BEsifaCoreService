@@ -93,7 +93,12 @@ public class S3StorageServiceImpl implements IStorageService {
                     patente,
                     i + 1);
 
-            String key = FOLDER_PREFIX + fileName + "." + extension;
+            String key = FOLDER_PREFIX
+                    + patente.toUpperCase()
+                    + "/"
+                    + fileName
+                    + "."
+                    + extension;
 
             try {
 
