@@ -10,6 +10,15 @@ DB_USER=usuario_de_tu_base_de_datos
 DB_PASSWORD=password_de_tu_base_de_datos
 
 # ============================================
+# AWS S3 CONFIGURATION
+# ============================================
+# Nombre del bucket de S3 donde se almacenarán los archivos
+AWS_S3_BUCKET_NAME=mi-bucket
+
+# Región del bucket de S3
+AWS_S3_REGION=us-east-1
+
+# ============================================
 # APP
 # ============================================
 SERVER_PORT=8083
