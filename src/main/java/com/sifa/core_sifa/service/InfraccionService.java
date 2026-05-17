@@ -40,7 +40,7 @@ public class InfraccionService {
         public List<InfraccionResponse> findAllInfracciones() {
                 log.info("Listando todas las infracciones");
 
-                return infraccionRepository.findAll()
+                return infraccionRepository.findAllByOrderByFechaDesc()
                                 .stream()
                                 .map(InfraccionResponse::fromEntity)
                                 .collect(Collectors.toList());

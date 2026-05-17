@@ -11,6 +11,9 @@ import java.util.List;
 @Repository
 public interface IInfraccionRepository extends JpaRepository<Infraccion, Integer> {
 
+    // Para buscar todas las infracciones por fecha descendiente
+    List<Infraccion> findAllByOrderByFechaDesc();
+
     // Para buscar todas las infracciones que hizo un usuario en terreno
     List<Infraccion> findByIdFiscalizador(String idFiscalizador);
 
