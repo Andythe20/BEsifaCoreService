@@ -39,7 +39,7 @@ public class InfraccionController {
 
         if (date != null) {
             log.info("Filtrando infracciones por fecha: {}", date);
-            //infracciones = infraccionService.findByDate(date);
+            // infracciones = infraccionService.findByDate(date);
             infracciones = infraccionService.findInfracciones(date, user);
         } else {
             log.info("Obteniendo todas las infracciones");
@@ -110,5 +110,33 @@ public class InfraccionController {
 
         // Devolvemos un 200 OK con el recurso actualizado
         return ResponseEntity.ok(infraccionActualizada);
+    }
+
+    // Regla de Negocio: Solo el personal del Juzgado de Policía Local (USER_JPL)
+    // puede cambiar el estado de una infracción (Aprobada, Rechazada, etc.)
+    @PreAuthorize("hasAnyAuthority('USER_JPL')")
+    @PatchMapping("/{id}")
+    public ResponseEntity<InfraccionResponse> actualizarEstado(
+            @PathVariable Integer id,
+            @RequestBody java.util.Map<String, String> body,
+            @RequestHeader(value = "X-Auth-User", required = false) String idUsuario) {
+
+        String status = body.get("status");
+        log.info("Petición PATCH recibida para actualizar estado de infracción ID: {} a {}", id, status);
+        InfraccionResponse response = infraccionService.actualizarEstadoInfraccion(id, status, idUsuario);
+        return ResponseEntity.ok(response);
+    }
+
+    // Regla de Negocio: Solo el personal del Juzgado de Policía Local (USER_JPL)
+    // puede editar o corregir campos de la infracción
+    @PreAuthorize("hasAnyAuthority('USER_JPL')")
+    @PutMapping("/{id}")
+    public ResponseEntity<InfraccionResponse> editarInfraccion(
+            @PathVariable Integer id,
+            @RequestBody java.util.Map<String, Object> body) {
+
+        log.info("Petición PUT recibida para editar campos de infracción ID: {}", id);
+        InfraccionResponse response = infraccionService.editarInfraccion(id, body);
+        return ResponseEntity.ok(response);
     }
 }

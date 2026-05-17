@@ -22,6 +22,10 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio encargado de gestionar toda la lógica de negocio relacionada con las
+ * Infracciones.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -74,24 +78,31 @@ public class InfraccionService {
                                 .collect(Collectors.toList());
         }
 
+        /**
+         * Registra una nueva infracción cursada por un fiscalizador desde la App Móvil.
+         * 
+         * Lógica clave:
+         * 1. Valida existencia de Patente y Tipo de Infracción.
+         * 2. Obliga a adjuntar al menos una fotografía de evidencia.
+         * 3. Sube los archivos al storage configurado (Mock local o S3 en producción).
+         * 4. Si la inserción en BD falla, hace ROLLBACK físico eliminando los archivos
+         * subidos al storage.
+         */
         @Transactional
         public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, List<MultipartFile> fotos,
                         String idFiscalizador) {
                 log.info("Iniciando creación de infracción para patente: {}", request.getPatenteVehiculo());
 
-                // Validar que el vehículo exista
                 var vehiculo = vehiculoRepository.findById(request.getPatenteVehiculo())
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Vehículo no encontrado con patente: " + request.getPatenteVehiculo()));
 
-                // Validar que el tipo de infracción sea correcto
                 var tipoInfraccion = tipoInfraccionRepository.findById(request.getIdTipoInfraccion())
                                 .orElseThrow(() -> new IllegalArgumentException("Tipo de infracción no válido"));
 
-                // Construir la entidad base
                 Infraccion nuevaInfraccion = Infraccion.builder()
-                                .idFiscalizador(idFiscalizador) // Viene del API Gateway (Extraído en el Controller)
-                                .idUsuarioJpl(null) // Aún no asignado
+                                .idFiscalizador(idFiscalizador)
+                                .idUsuarioJpl(null)
                                 .lugar(request.getLugar())
                                 .latitud(request.getLatitud())
                                 .longitud(request.getLongitud())
@@ -100,10 +111,8 @@ public class InfraccionService {
                                 .estado("EN PROCESO")
                                 .vehiculo(vehiculo)
                                 .tipoInfraccion(tipoInfraccion)
-                                // citacion queda en null inicialmente
                                 .build();
 
-                // Procesar los archivos recibidos
                 if (fotos == null || fotos.isEmpty()) {
                         throw new IllegalArgumentException(
                                         "Es obligatorio adjuntar al menos una fotografía de evidencia.");
@@ -112,10 +121,6 @@ public class InfraccionService {
                 List<String> uploadedUrls = new java.util.ArrayList<>();
 
                 try {
-
-                        // Subir archivos usando el storage activo
-                        // dev -> mock
-                        // prod -> S3 real
                         List<String> urls = storageService.uploadFiles(
                                         fotos,
                                         request.getPatenteVehiculo());
@@ -131,7 +136,6 @@ public class InfraccionService {
 
                         nuevaInfraccion.setEvidenciasFotograficas(evidencias);
 
-                        // Guardar en base de datos
                         Infraccion infraccionGuardada = infraccionRepository.save(nuevaInfraccion);
 
                         log.info("Infracción creada exitosamente con ID: {}",
@@ -140,10 +144,10 @@ public class InfraccionService {
                         return InfraccionResponse.fromEntity(infraccionGuardada);
 
                 } catch (Exception e) {
-
                         log.error("Error creando infracción. Rollback archivos storage", e);
 
-                        // Si falla la BD eliminamos archivos subidos
+                        // Si el guardado en BD falla, eliminamos los archivos para evitar "basura" en
+                        // S3
                         uploadedUrls.forEach(url -> {
                                 try {
                                         storageService.deleteFile(url);
@@ -156,40 +160,41 @@ public class InfraccionService {
                 }
         }
 
+        /**
+         * Procesa o decide el estado final de una infracción por parte del JPL.
+         * 
+         * Lógica clave:
+         * 1. Bloquea el reprocesamiento de infracciones ya cerradas (Aprobadas o
+         * Rechazadas).
+         * 2. Obliga a ingresar un motivo de rechazo si el estado asignado es
+         * 'RECHAZADA'.
+         * 3. Registra la fecha de la resolución y el UUID del funcionario JPL.
+         */
         @Transactional
         public InfraccionResponse procesarInfraccionPorJpl(Integer idInfraccion, InfraccionUpdateRequest request,
                         String idAdministrativoJpl) {
                 log.info("Administrativo JPL {} procesando infracción ID: {}", idAdministrativoJpl, idInfraccion);
 
-                // Buscar la infracción existente
                 Infraccion infraccion = infraccionRepository.findById(idInfraccion)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Infracción no encontrada con ID: " + idInfraccion));
 
-                // Validar que no se intente reprocesar una infracción ya cerrada
                 if ("APROBADA".equalsIgnoreCase(infraccion.getEstado())
                                 || "RECHAZADA".equalsIgnoreCase(infraccion.getEstado())) {
                         throw new IllegalStateException(
                                         "La infracción ya fue procesada anteriormente y no puede ser modificada.");
                 }
 
-                // Si es rechazada, debe tener motivo
                 if ("RECHAZADA".equalsIgnoreCase(request.getEstado()) &&
                                 (request.getMotivoRechazo() == null || request.getMotivoRechazo().trim().isEmpty())) {
                         throw new IllegalArgumentException("Debe ingresar un motivo de rechazo válido.");
                 }
 
-                // Actualizar los campos enviados por el frontend
                 infraccion.setEstado(request.getEstado().toUpperCase());
                 infraccion.setMotivoRechazo(request.getMotivoRechazo());
-
-                // Datos generados y controlados por el Backend
                 infraccion.setFechaResolucion(java.time.LocalDateTime.now());
-
-                // Asignamos el UUID del funcionario que está tomando la decisión.
                 infraccion.setIdUsuarioJpl(idAdministrativoJpl);
 
-                // Guardar los cambios
                 Infraccion infraccionActualizada = infraccionRepository.save(infraccion);
 
                 log.info("Infracción ID: {} procesada exitosamente con estado: {}", idInfraccion,
@@ -210,6 +215,9 @@ public class InfraccionService {
                                 .toList();
         }
 
+        /**
+         * Búsqueda avanzada con filtros combinados (Fecha y/o Fiscalizador).
+         */
         @Transactional(readOnly = true)
         public List<InfraccionResponse> findInfracciones(
                         LocalDate date,
@@ -217,36 +225,20 @@ public class InfraccionService {
 
                 List<Infraccion> infracciones;
 
-                // date + user
                 if (date != null && user != null) {
-
                         LocalDateTime start = date.atStartOfDay();
                         LocalDateTime end = date.atTime(LocalTime.MAX);
-
                         infracciones = infraccionRepository
                                         .findByFechaBetweenAndIdFiscalizador(start, end, user);
-
-                }
-                // solo date
-                else if (date != null) {
-
+                } else if (date != null) {
                         LocalDateTime start = date.atStartOfDay();
                         LocalDateTime end = date.atTime(LocalTime.MAX);
-
                         infracciones = infraccionRepository
                                         .findByFechaBetween(start, end);
-
-                }
-                // solo user
-                else if (user != null) {
-
+                } else if (user != null) {
                         infracciones = infraccionRepository
                                         .findByIdFiscalizador(user);
-
-                }
-                // sin filtros
-                else {
-
+                } else {
                         infracciones = infraccionRepository.findAll();
                 }
                 return infracciones.stream()
@@ -254,4 +246,133 @@ public class InfraccionService {
                                 .toList();
         }
 
+        /**
+         * Cambia el estado de una infracción y mapea la nomenclatura del Frontend
+         * (accepted, rejected)
+         * a los estados de la base de datos (APROBADA, RECHAZADA).
+         */
+        @Transactional
+        public InfraccionResponse actualizarEstadoInfraccion(Integer id, String status, String idUsuario) {
+                Infraccion infraccion = infraccionRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Infracción no encontrada con ID: " + id));
+
+                String dbStatus = status == null ? "EN PROCESO" : switch (status.toLowerCase()) {
+                        case "pending" -> "EN PROCESO";
+                        case "accepted" -> "APROBADA";
+                        case "rejected" -> "RECHAZADA";
+                        case "exported" -> "EXPORTADA";
+                        default -> status.toUpperCase();
+                };
+
+                infraccion.setEstado(dbStatus);
+                if (idUsuario != null) {
+                        infraccion.setIdUsuarioJpl(idUsuario);
+                }
+                infraccion.setFechaResolucion(java.time.LocalDateTime.now());
+
+                return InfraccionResponse.fromEntity(infraccionRepository.save(infraccion));
+        }
+
+        /**
+         * Permite la edición parcial y dinámica de los campos de la infracción desde el
+         * Dashboard.
+         * 
+         * Lógica clave:
+         * 1. Mapea campos planos (boleta, parte, observaciones, estado).
+         * 2. Si se cambia 'infractionCode', busca y actualiza de forma segura la
+         * relación de tipo de infracción.
+         * 3. Si se cambia la patente en 'vehicle', vincula el nuevo registro del
+         * vehículo.
+         * 4. Si se cambia la 'fechaCitacion', crea o actualiza la entidad Citacion
+         * aplicando formato seguro.
+         */
+        @Transactional
+        public InfraccionResponse editarInfraccion(Integer id, java.util.Map<String, Object> request) {
+                log.info("Editando infracción ID: {}", id);
+
+                Infraccion infraccion = infraccionRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Infracción no encontrada con ID: " + id));
+
+                if (request.containsKey("numeroBoleta")) {
+                        infraccion.setNumeroBoleta((String) request.get("numeroBoleta"));
+                }
+                if (request.containsKey("numeroParte")) {
+                        infraccion.setNumeroParte((String) request.get("numeroParte"));
+                }
+                if (request.containsKey("observaciones")) {
+                        infraccion.setObservaciones((String) request.get("observaciones"));
+                }
+                if (request.containsKey("infractionDescription")) {
+                        infraccion.setObservaciones((String) request.get("infractionDescription"));
+                }
+
+                if (request.containsKey("status")) {
+                        String status = (String) request.get("status");
+                        String dbStatus = status == null ? "EN PROCESO" : switch (status.toLowerCase()) {
+                                case "pending" -> "EN PROCESO";
+                                case "accepted" -> "APROBADA";
+                                case "rejected" -> "RECHAZADA";
+                                case "exported" -> "EXPORTADA";
+                                default -> status.toUpperCase();
+                        };
+                        infraccion.setEstado(dbStatus);
+                }
+
+                if (request.containsKey("infractionCode")) {
+                        try {
+                                Integer code = Integer.parseInt(String.valueOf(request.get("infractionCode")));
+                                var tipo = tipoInfraccionRepository.findById(code).orElse(null);
+                                if (tipo != null) {
+                                        infraccion.setTipoInfraccion(tipo);
+                                }
+                        } catch (Exception e) {
+                                log.warn("Código de infracción inválido en edición: {}", request.get("infractionCode"));
+                        }
+                }
+
+                if (request.containsKey("vehicle")) {
+                        var vehicleMap = (java.util.Map<String, Object>) request.get("vehicle");
+                        if (vehicleMap != null && vehicleMap.containsKey("plate")) {
+                                String plate = (String) vehicleMap.get("plate");
+                                if (plate != null && !plate.trim().isEmpty()) {
+                                        var vehiculo = vehiculoRepository.findById(plate).orElse(null);
+                                        if (vehiculo != null) {
+                                                infraccion.setVehiculo(vehiculo);
+                                        }
+                                }
+                        }
+                }
+
+                if (request.containsKey("tramitacion")) {
+                        var tramMap = (java.util.Map<String, Object>) request.get("tramitacion");
+                        if (tramMap != null && tramMap.containsKey("fechaCitacion")) {
+                                String fechaStr = (String) tramMap.get("fechaCitacion");
+                                if (fechaStr != null && !fechaStr.trim().isEmpty()
+                                                && !"No definida".equalsIgnoreCase(fechaStr)) {
+                                        try {
+                                                java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter
+                                                                .ofPattern("yyyy-MM-dd HH:mm");
+                                                java.time.LocalDateTime fCit = java.time.LocalDateTime.parse(fechaStr,
+                                                                dtf);
+                                                if (infraccion.getCitacion() != null) {
+                                                        infraccion.getCitacion().setFecha(fCit);
+                                                } else {
+                                                        var cit = com.sifa.core_sifa.model.Citacion.builder()
+                                                                        .fecha(fCit)
+                                                                        .infraccion(infraccion)
+                                                                        .listadoCorte(false)
+                                                                        .build();
+                                                        infraccion.setCitacion(cit);
+                                                }
+                                        } catch (Exception e) {
+                                                log.warn("Error parseando fechaCitacion: {}", fechaStr);
+                                        }
+                                }
+                        }
+                }
+
+                return InfraccionResponse.fromEntity(infraccionRepository.save(infraccion));
+        }
 }

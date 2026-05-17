@@ -2,8 +2,6 @@ package com.sifa.core_sifa.model;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.UUID;
-
 import org.hibernate.annotations.JdbcTypeCode;
 
 import jakarta.persistence.Column;
@@ -21,11 +19,12 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "AUDIT_LOGS")
-@Data @Builder
+@Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuditLog {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer idAuditLog;

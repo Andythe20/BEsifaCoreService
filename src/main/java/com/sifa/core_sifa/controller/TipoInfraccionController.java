@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sifa.core_sifa.dto.TipoInfraccionDTO;
-import com.sifa.core_sifa.model.TipoInfraccion;
 import com.sifa.core_sifa.service.TipoInfraccionService;
 
 import java.util.List;
@@ -25,7 +24,7 @@ public class TipoInfraccionController {
 
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_APP')")
     @GetMapping("/all")
-    public ResponseEntity<List<TipoInfraccionDTO>> findAll(){
+    public ResponseEntity<List<TipoInfraccionDTO>> findAll() {
         log.info("Obteniendo todos los tipos de infracción");
         List<TipoInfraccionDTO> tiposInfraccion = tipoInfraccionService.findAll();
 
@@ -34,7 +33,7 @@ public class TipoInfraccionController {
 
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_APP')")
     @GetMapping("/id/{id}")
-    public ResponseEntity<TipoInfraccionDTO> findById(@PathVariable Integer id){
+    public ResponseEntity<TipoInfraccionDTO> findById(@PathVariable Integer id) {
         TipoInfraccionDTO tipoInfraccion = tipoInfraccionService.findById(id);
 
         return ResponseEntity.ok(tipoInfraccion);
