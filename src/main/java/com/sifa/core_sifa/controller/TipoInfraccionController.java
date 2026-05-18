@@ -26,7 +26,7 @@ public class TipoInfraccionController {
 
     private final TipoInfraccionServiceImpl tipoInfraccionService;
 
-    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_APP')")
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR', 'USER_APP')")
     @GetMapping("/all")
     public ResponseEntity<List<TipoInfraccionDTO>> findAll() {
         log.info("Obteniendo todos los tipos de infracción");
