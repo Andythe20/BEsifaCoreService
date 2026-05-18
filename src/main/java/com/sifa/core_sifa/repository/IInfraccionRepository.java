@@ -15,16 +15,16 @@ public interface IInfraccionRepository extends JpaRepository<Infraccion, Integer
     List<Infraccion> findAllByOrderByFechaDesc();
 
     // Para buscar todas las infracciones que hizo un usuario en terreno
-    List<Infraccion> findByIdFiscalizador(String idFiscalizador);
+    List<Infraccion> findByIdFiscalizadorOrderByFechaDesc(String idFiscalizador);
 
     // Para ver el historial de multas de un vehículo navegando por la relación
-    List<Infraccion> findByVehiculoPatente(String vehiculoPatente);
+    List<Infraccion> findByVehiculoPatenteOrderByFechaDesc(String vehiculoPatente);
 
     // Para buscar todas las infracciones que se hicieron en un rango de fechas
-    List<Infraccion> findByFechaBetween(LocalDateTime start, LocalDateTime end);
+    List<Infraccion> findByFechaBetweenOrderByFechaDesc(LocalDateTime start, LocalDateTime end);
 
     // Para buscar todas las infracciones que hizo un usuario en terreno en un rango de fechas
-    List<Infraccion> findByFechaBetweenAndIdFiscalizador(
+    List<Infraccion> findByFechaBetweenAndIdFiscalizadorOrderByFechaDesc(
         LocalDateTime start,
         LocalDateTime end,
         String idFiscalizador

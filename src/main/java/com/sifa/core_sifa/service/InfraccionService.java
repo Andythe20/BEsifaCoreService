@@ -60,7 +60,7 @@ public class InfraccionService {
         public List<InfraccionResponse> findByIdFiscalizador(String idFiscalizador) {
                 log.info("Buscando infracciones por id Fiscalizador: {}", idFiscalizador);
 
-                List<Infraccion> listaInfracciones = infraccionRepository.findByIdFiscalizador(idFiscalizador);
+                List<Infraccion> listaInfracciones = infraccionRepository.findByIdFiscalizadorOrderByFechaDesc(idFiscalizador);
 
                 return listaInfracciones.stream()
                                 .map(InfraccionResponse::fromEntity)
@@ -71,7 +71,7 @@ public class InfraccionService {
         public List<InfraccionResponse> findByVehiculoPatente(String vehiculoPatente) {
                 log.info("Buscando infracciones por patente: {}", vehiculoPatente);
 
-                List<Infraccion> listaInfracciones = infraccionRepository.findByVehiculoPatente(vehiculoPatente);
+                List<Infraccion> listaInfracciones = infraccionRepository.findByVehiculoPatenteOrderByFechaDesc(vehiculoPatente);
 
                 return listaInfracciones.stream()
                                 .map(InfraccionResponse::fromEntity)
@@ -209,7 +209,7 @@ public class InfraccionService {
                 LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
 
                 return infraccionRepository
-                                .findByFechaBetween(startOfDay, endOfDay)
+                                .findByFechaBetweenOrderByFechaDesc(startOfDay, endOfDay)
                                 .stream()
                                 .map(InfraccionResponse::fromEntity)
                                 .toList();
@@ -228,18 +228,20 @@ public class InfraccionService {
                 if (date != null && user != null) {
                         LocalDateTime start = date.atStartOfDay();
                         LocalDateTime end = date.atTime(LocalTime.MAX);
+
                         infracciones = infraccionRepository
-                                        .findByFechaBetweenAndIdFiscalizador(start, end, user);
+                                        .findByFechaBetweenAndIdFiscalizadorOrderByFechaDesc(start, end, user);
                 } else if (date != null) {
                         LocalDateTime start = date.atStartOfDay();
                         LocalDateTime end = date.atTime(LocalTime.MAX);
+
                         infracciones = infraccionRepository
-                                        .findByFechaBetween(start, end);
+                                        .findByFechaBetweenOrderByFechaDesc(start, end);
                 } else if (user != null) {
                         infracciones = infraccionRepository
-                                        .findByIdFiscalizador(user);
+                                        .findByIdFiscalizadorOrderByFechaDesc(user);
                 } else {
-                        infracciones = infraccionRepository.findAll();
+                        infracciones = infraccionRepository.findAllByOrderByFechaDesc();
                 }
                 return infracciones.stream()
                                 .map(InfraccionResponse::fromEntity)
