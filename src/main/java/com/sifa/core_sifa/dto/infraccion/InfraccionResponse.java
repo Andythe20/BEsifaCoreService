@@ -21,26 +21,26 @@ import com.sifa.core_sifa.model.Infraccion;
 @AllArgsConstructor
 public class InfraccionResponse {
 
-  private String id; // ID formateado a String para compatibilidad con el frontend
+  // columnas generales de la tabla infraccion
+  private String id;
+  private String idFiscalizador;
+  private String idUsuarioJpl;
+  private LocalDateTime fecha;
   private String status;
-  private LocalDateTime timestamp;
-  private String infractionDescription;
-  private String numeroBoleta;
-  private String numeroParte;
-  private String agentId;
-  private String infractionCode;
-  private String disposicionInfringida;
+  private String motivoRechazo;
+  private LocalDateTime fechaResolucion;
+  private String observaciones;
 
+  // nodos anidados
+  private TipoInfraccionDTO tipoInfraccion;
   private LocationDTO location;
   private VehicleDTO vehicle;
-  private DenunciadoDTO denunciado;
-  private TramitacionDTO tramitacion;
+  private PropietarioDTO propietario;
+  private CitacionDTO citacion;
 
-  private String photoUrl;
+  // 3. Evidencias
   private List<String> evidenceUrls;
-  private String denunciante;
-  private Float amount;
-  private String observaciones;
+
 
   @Data
   @Builder
@@ -50,35 +50,41 @@ public class InfraccionResponse {
     private Float lng;
   }
 
-  @Data
-  @Builder
+  @Data @Builder
+  public static class TipoInfraccionDTO {
+    private Integer id;
+    private String nombre;
+    private String disposicionInfringida;
+  }
+
+  @Data @Builder
   public static class VehicleDTO {
     private String plate;
     private String brand;
     private String model;
+    private Integer year;
     private String color;
     private String type;
+    private String nroMotor;
+    private String nroSerie;
   }
 
-  @Data
-  @Builder
-  public static class DenunciadoDTO {
+  @Data @Builder
+  public static class PropietarioDTO {
     private String rut;
-    private String nombre;
+    private String nombreCompleto;
     private String direccion;
     private String comuna;
+    private String correo;
+    private String telefono;
     private String profesion;
     private String estadoCivil;
-    private String edad;
+    private Integer edad;
   }
 
-  @Data
-  @Builder
-  public static class TramitacionDTO {
-    private String fechaCitacion;
-    private Boolean listadoCorte;
-    private String fechaFallo;
-    private String fechaArchivo;
+  @Data @Builder
+  public static class CitacionDTO {
+    private LocalDateTime fechaCitacion;
   }
 
   /**
@@ -86,8 +92,7 @@ public class InfraccionResponse {
    * (inglés).
    */
   private static String mapEstadoToFrontend(String estado) {
-    if (estado == null)
-      return "pending";
+    if (estado == null) return "pending";
     return switch (estado.toUpperCase()) {
       case "PENDING", "EN PROCESO", "PENDIENTE" -> "pending";
       case "ACCEPTED", "APROBADA", "ACEPTADA" -> "accepted";
@@ -103,116 +108,81 @@ public class InfraccionResponse {
    */
   public static InfraccionResponse fromEntity(Infraccion entity) {
     return InfraccionResponse.builder()
-        .id(String.valueOf(entity.getIdInfraccion()))
-        .status(mapEstadoToFrontend(entity.getEstado()))
-        .timestamp(entity.getFecha())
-        .infractionDescription(
-            entity.getTipoInfraccion() != null ? entity.getTipoInfraccion().getNombre() : "Infracción de Tránsito")
-        .numeroBoleta(entity.getNumeroBoleta() != null ? entity.getNumeroBoleta() : "B-" + entity.getIdInfraccion())
-        .numeroParte(entity.getNumeroParte() != null ? entity.getNumeroParte() : "P-" + entity.getIdInfraccion())
-        .agentId(entity.getIdFiscalizador() != null ? entity.getIdFiscalizador() : "app@sifa.cl")
-        .infractionCode(getInfractionCode(entity))
-        .disposicionInfringida(getDisposicion(entity))
-        .denunciante(entity.getDenunciante() != null ? entity.getDenunciante() : "Seguridad Pública")
-        .amount(entity.getMonto() != null ? entity.getMonto() : 0.0f)
-        .location(buildLocation(entity))
-        .vehicle(buildVehicle(entity))
-        .denunciado(buildDenunciado(entity))
-        .tramitacion(buildTramitacion(entity))
-        .evidenceUrls(buildEvidenceUrls(entity))
-        .photoUrl(buildPhotoUrl(entity))
-        .observaciones(entity.getObservaciones())
-        .build();
+            .id(String.valueOf(entity.getIdInfraccion()))
+            .idFiscalizador(entity.getIdFiscalizador())
+            .idUsuarioJpl(entity.getIdUsuarioJpl())
+            .fecha(entity.getFecha())
+            .status(mapEstadoToFrontend(entity.getEstado()))
+            .motivoRechazo(entity.getMotivoRechazo())
+            .fechaResolucion(entity.getFechaResolucion())
+            .observaciones(entity.getObservaciones())
+            .tipoInfraccion(buildTipoInfraccion(entity))
+            .location(buildLocation(entity))
+            .vehicle(buildVehicle(entity))
+            .propietario(buildPropietario(entity))
+            .citacion(buildCitacion(entity))
+            .evidenceUrls(buildEvidenceUrls(entity))
+            .build();
   }
 
-  private static String getInfractionCode(Infraccion entity) {
-    return entity.getTipoInfraccion() != null ? String.valueOf(entity.getTipoInfraccion().getIdTipoInfraccion())
-        : "S/C";
-  }
-
-  private static String getDisposicion(Infraccion entity) {
-    if (entity.getTipoInfraccion() != null && entity.getTipoInfraccion().getDisposicionInfringida() != null) {
-      return entity.getTipoInfraccion().getDisposicionInfringida();
-    }
-    return "Ley de Tránsito 18.290";
+  private static TipoInfraccionDTO buildTipoInfraccion(Infraccion entity) {
+    if (entity.getTipoInfraccion() == null) return null;
+    return TipoInfraccionDTO.builder()
+            .id(entity.getTipoInfraccion().getIdTipoInfraccion())
+            .nombre(entity.getTipoInfraccion().getNombre())
+            .disposicionInfringida(entity.getTipoInfraccion().getDisposicionInfringida())
+            .build();
   }
 
   private static LocationDTO buildLocation(Infraccion entity) {
     return LocationDTO.builder()
-        .address(entity.getLugar())
-        .lat(entity.getLatitud())
-        .lng(entity.getLongitud())
-        .build();
+            .address(entity.getLugar())
+            .lat(entity.getLatitud())
+            .lng(entity.getLongitud())
+            .build();
   }
 
   private static VehicleDTO buildVehicle(Infraccion entity) {
-    if (entity.getVehiculo() == null)
-      return null;
+    if (entity.getVehiculo() == null) return null;
     return VehicleDTO.builder()
-        .plate(entity.getVehiculo().getPatente())
-        .brand(entity.getVehiculo().getMarca())
-        .model(entity.getVehiculo().getModelo())
-        .color(entity.getVehiculo().getColor())
-        .type(entity.getVehiculo().getTipo() != null ? entity.getVehiculo().getTipo() : "Vehículo Motorizado")
-        .build();
+            .plate(entity.getVehiculo().getPatente())
+            .brand(entity.getVehiculo().getMarca())
+            .model(entity.getVehiculo().getModelo())
+            .year(entity.getVehiculo().getAnioFabricacion())
+            .color(entity.getVehiculo().getColor())
+            .type(entity.getVehiculo().getTipo())
+            .nroMotor(entity.getVehiculo().getNroMotor())
+            .nroSerie(entity.getVehiculo().getNroSerie())
+            .build();
   }
 
-  private static DenunciadoDTO buildDenunciado(Infraccion entity) {
-    if (entity.getVehiculo() == null || entity.getVehiculo().getPropietarioVehiculo() == null)
-      return null;
+  private static PropietarioDTO buildPropietario(Infraccion entity) {
+    if (entity.getVehiculo() == null || entity.getVehiculo().getPropietarioVehiculo() == null) return null;
     var prop = entity.getVehiculo().getPropietarioVehiculo();
-    return DenunciadoDTO.builder()
-        .rut(prop.getRut())
-        .nombre(prop.getNombres() + " " + prop.getApellidos())
-        .direccion(prop.getDireccion() != null ? prop.getDireccion() : "No registrada")
-        .comuna(prop.getComuna())
-        .profesion(prop.getProfesion())
-        .estadoCivil(prop.getEstadoCivil())
-        .edad(prop.getEdad() != null ? String.valueOf(prop.getEdad()) : "N/A")
-        .build();
+    return PropietarioDTO.builder()
+            .rut(prop.getRut())
+            .nombreCompleto(prop.getNombres() + " " + prop.getApellidos())
+            .direccion(prop.getDireccion())
+            .comuna(prop.getComuna())
+            .correo(prop.getCorreo())
+            .telefono(prop.getTelefono())
+            .profesion(prop.getProfesion())
+            .estadoCivil(prop.getEstadoCivil())
+            .edad(prop.getEdad())
+            .build();
   }
 
-  /**
-   * Resuelve la fecha de citación: usa la citación judicial asignada, o la fecha
-   * de la infracción como fallback.
-   */
-  private static TramitacionDTO buildTramitacion(Infraccion entity) {
-    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-    String fechaCitacionStr = "No definida";
-
-    if (entity.getCitacion() != null && entity.getCitacion().getFecha() != null) {
-      fechaCitacionStr = entity.getCitacion().getFecha().format(formatter);
-    } else if (entity.getFecha() != null) {
-      fechaCitacionStr = entity.getFecha().format(formatter);
-    }
-
-    if (entity.getCitacion() == null) {
-      return TramitacionDTO.builder()
-          .fechaCitacion(fechaCitacionStr)
-          .listadoCorte(false)
-          .build();
-    }
-
-    var c = entity.getCitacion();
-    return TramitacionDTO.builder()
-        .fechaCitacion(fechaCitacionStr)
-        .listadoCorte(c.getListadoCorte() != null ? c.getListadoCorte() : false)
-        .fechaFallo(c.getFechaFallo() != null ? c.getFechaFallo().format(formatter) : null)
-        .fechaArchivo(c.getFechaArchivo() != null ? c.getFechaArchivo().format(formatter) : null)
-        .build();
+  private static CitacionDTO buildCitacion(Infraccion entity) {
+    if (entity.getCitacion() == null) return null;
+    return CitacionDTO.builder()
+            .fechaCitacion(entity.getCitacion().getFecha())
+            .build();
   }
 
   private static List<String> buildEvidenceUrls(Infraccion entity) {
-    if (entity.getEvidenciasFotograficas() == null)
-      return Collections.emptyList();
+    if (entity.getEvidenciasFotograficas() == null) return Collections.emptyList();
     return entity.getEvidenciasFotograficas().stream()
-        .map(EvidenciaFotografica::getUrl)
-        .collect(Collectors.toList());
-  }
-
-  private static String buildPhotoUrl(Infraccion entity) {
-    if (entity.getEvidenciasFotograficas() == null || entity.getEvidenciasFotograficas().isEmpty())
-      return null;
-    return entity.getEvidenciasFotograficas().get(0).getUrl();
+            .map(EvidenciaFotografica::getUrl)
+            .collect(Collectors.toList());
   }
 }

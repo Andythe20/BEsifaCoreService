@@ -31,15 +31,6 @@ public class Citacion {
     @Column(nullable = false)
     private LocalDateTime fecha;
 
-    @Column(nullable = true)
-    private Boolean listadoCorte;
-
-    @Column(nullable = true)
-    private LocalDateTime fechaFallo;
-
-    @Column(nullable = true)
-    private LocalDateTime fechaArchivo;
-
     @OneToOne
     @JoinColumn(name = "idInfraccion", nullable = false, unique = true)
     private Infraccion infraccion;
