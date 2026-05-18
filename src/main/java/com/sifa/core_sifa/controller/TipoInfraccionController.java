@@ -26,7 +26,7 @@ public class TipoInfraccionController {
 
     private final TipoInfraccionServiceImpl tipoInfraccionService;
 
-    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_APP')")
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR', 'USER_APP')")
     @GetMapping("/all")
     public ResponseEntity<List<TipoInfraccionDTO>> findAll() {
         log.info("Obteniendo todos los tipos de infracción");
@@ -44,7 +44,7 @@ public class TipoInfraccionController {
     }
 
     // CREATE
-    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL')")
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN')")
     @PostMapping
     public ResponseEntity<TipoInfraccionDTO> create(
             @RequestBody TipoInfraccionDTO tipoInfraccionDTO) {
@@ -58,7 +58,7 @@ public class TipoInfraccionController {
     }
 
     // UPDATE
-    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL')")
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<TipoInfraccionDTO> update(
             @PathVariable Integer id,
