@@ -1,6 +1,11 @@
 package com.sifa.core_sifa.model;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -34,6 +39,19 @@ public class TipoInfraccion {
     @Column(nullable = true)
     private String disposicionInfringida;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean habilitado = true;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDate createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
     @OneToMany(mappedBy = "tipoInfraccion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Infraccion> infracciones;
+
 }
