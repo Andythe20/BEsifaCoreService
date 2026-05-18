@@ -86,7 +86,7 @@ Asegúrate de tener un archivo `launch.json` configurado en tu carpeta `.vscode`
       "name": "Spring Boot-App",
       "request": "launch",
       "mainClass": "com.example.core_sifa.CoreSifaApplication",
-      "envFile": "${workspaceFolder}/.env"
+      "envFile": "${workspaceFolder}/..env"
     }
   ]
 }

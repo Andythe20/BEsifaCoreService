@@ -297,12 +297,6 @@ public class InfraccionService {
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Infracción no encontrada con ID: " + id));
 
-                if (request.containsKey("numeroBoleta")) {
-                        infraccion.setNumeroBoleta((String) request.get("numeroBoleta"));
-                }
-                if (request.containsKey("numeroParte")) {
-                        infraccion.setNumeroParte((String) request.get("numeroParte"));
-                }
                 if (request.containsKey("observaciones")) {
                         infraccion.setObservaciones((String) request.get("observaciones"));
                 }
@@ -364,7 +358,6 @@ public class InfraccionService {
                                                         var cit = com.sifa.core_sifa.model.Citacion.builder()
                                                                         .fecha(fCit)
                                                                         .infraccion(infraccion)
-                                                                        .listadoCorte(false)
                                                                         .build();
                                                         infraccion.setCitacion(cit);
                                                 }
