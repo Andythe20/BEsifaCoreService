@@ -4,6 +4,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -11,11 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Pageable;
 
 import com.sifa.core_sifa.dto.infraccion.InfraccionCreateRequest;
 import com.sifa.core_sifa.dto.infraccion.InfraccionResponse;
 import com.sifa.core_sifa.dto.infraccion.InfraccionUpdateRequest;
-import com.sifa.core_sifa.service.InfraccionService;
+import com.sifa.core_sifa.service.infraccion.IInfraccionService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,29 +30,33 @@ import java.util.List;
 @Slf4j
 public class InfraccionController {
 
-    private final InfraccionService infraccionService;
+    private final IInfraccionService infraccionService;
 
     @PreAuthorize("hasAnyAuthority('USER_APP', 'USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/all")
-    public ResponseEntity<List<InfraccionResponse>> getAllInfracciones(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+    public ResponseEntity<Page<InfraccionResponse>> getAllInfracciones(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-            @RequestParam(required = false) String user) {
+        log.info("Obteniendo infracciones paginadas");
 
-        List<InfraccionResponse> infracciones;
-
-        if (date != null) {
-            log.info("Filtrando infracciones por fecha: {}", date);
-            // infracciones = infraccionService.findByDate(date);
-            infracciones = infraccionService.findInfracciones(date, user);
-        } else {
-            log.info("Obteniendo todas las infracciones");
-            infracciones = infraccionService.findAllInfracciones();
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("startDate no puede ser mayor que endDate");
         }
 
-        if (infracciones.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("fecha").descending());
+
+        Page<InfraccionResponse> infracciones = infraccionService.findInfracciones(
+                startDate,
+                endDate,
+                user,
+                pageable);
 
         return ResponseEntity.ok(infracciones);
     }
@@ -63,10 +71,21 @@ public class InfraccionController {
 
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/fiscalizador/{idFiscalizador}")
-    public ResponseEntity<List<InfraccionResponse>> getInfraccionesByIdFiscalizador(
-            @PathVariable String idFiscalizador) {
+    public ResponseEntity<Page<InfraccionResponse>> getInfraccionesByIdFiscalizador(
+            @PathVariable String idFiscalizador,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+        ) {
+
         log.info("Obteniendo infracciones por el id del fiscalizador: {}", idFiscalizador);
-        List<InfraccionResponse> infracciones = infraccionService.findByIdFiscalizador(idFiscalizador);
+
+        Pageable pageable = PageRequest.of(
+            page,
+            size,
+            Sort.by("fecha").descending()
+        );
+
+        Page<InfraccionResponse> infracciones = infraccionService.findByIdFiscalizador(idFiscalizador, pageable);
         return ResponseEntity.ok(infracciones);
     }
 

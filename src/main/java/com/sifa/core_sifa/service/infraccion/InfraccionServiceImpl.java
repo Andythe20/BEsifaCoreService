@@ -1,8 +1,12 @@
-package com.sifa.core_sifa.service;
+package com.sifa.core_sifa.service.infraccion;
 
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,6 +19,7 @@ import com.sifa.core_sifa.model.Infraccion;
 import com.sifa.core_sifa.repository.IInfraccionRepository;
 import com.sifa.core_sifa.repository.ITipoInfraccionRepository;
 import com.sifa.core_sifa.repository.IVehiculoRepository;
+import com.sifa.core_sifa.service.IStorageService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,23 +34,26 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class InfraccionService {
+public class InfraccionServiceImpl implements IInfraccionService {
 
         private final IInfraccionRepository infraccionRepository;
         private final IVehiculoRepository vehiculoRepository;
         private final ITipoInfraccionRepository tipoInfraccionRepository;
         private final IStorageService storageService;
 
+        @Override
         @Transactional(readOnly = true)
         public List<InfraccionResponse> findAllInfracciones() {
                 log.info("Listando todas las infracciones");
 
-                return infraccionRepository.findAllByOrderByFechaDesc()
+                return infraccionRepository.findAll(
+                                Sort.by(Sort.Direction.DESC, "fecha"))
                                 .stream()
                                 .map(InfraccionResponse::fromEntity)
                                 .collect(Collectors.toList());
         }
 
+        @Override
         @Transactional(readOnly = true)
         public InfraccionResponse findById(Integer idInfraccion) {
                 log.info("Buscando infraccion con id: {}", idInfraccion);
@@ -56,22 +64,28 @@ public class InfraccionService {
                 return InfraccionResponse.fromEntity(infraccion);
         }
 
+        @Override
         @Transactional(readOnly = true)
-        public List<InfraccionResponse> findByIdFiscalizador(String idFiscalizador) {
+        public Page<InfraccionResponse> findByIdFiscalizador(
+                        String idFiscalizador,
+                        Pageable pageable) {
+
                 log.info("Buscando infracciones por id Fiscalizador: {}", idFiscalizador);
 
-                List<Infraccion> listaInfracciones = infraccionRepository.findByIdFiscalizadorOrderByFechaDesc(idFiscalizador);
+                Page<Infraccion> listaInfracciones = infraccionRepository.findByIdFiscalizadorOrderByFechaDesc(
+                                idFiscalizador,
+                                pageable);
 
-                return listaInfracciones.stream()
-                                .map(InfraccionResponse::fromEntity)
-                                .collect(Collectors.toList());
+                return listaInfracciones.map(InfraccionResponse::fromEntity);
         }
 
+        @Override
         @Transactional(readOnly = true)
         public List<InfraccionResponse> findByVehiculoPatente(String vehiculoPatente) {
                 log.info("Buscando infracciones por patente: {}", vehiculoPatente);
 
-                List<Infraccion> listaInfracciones = infraccionRepository.findByVehiculoPatenteOrderByFechaDesc(vehiculoPatente);
+                List<Infraccion> listaInfracciones = infraccionRepository
+                                .findByVehiculoPatenteOrderByFechaDesc(vehiculoPatente);
 
                 return listaInfracciones.stream()
                                 .map(InfraccionResponse::fromEntity)
@@ -88,6 +102,7 @@ public class InfraccionService {
          * 4. Si la inserción en BD falla, hace ROLLBACK físico eliminando los archivos
          * subidos al storage.
          */
+        @Override
         @Transactional
         public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, List<MultipartFile> fotos,
                         String idFiscalizador) {
@@ -170,6 +185,7 @@ public class InfraccionService {
          * 'RECHAZADA'.
          * 3. Registra la fecha de la resolución y el UUID del funcionario JPL.
          */
+        @Override
         @Transactional
         public InfraccionResponse procesarInfraccionPorJpl(Integer idInfraccion, InfraccionUpdateRequest request,
                         String idAdministrativoJpl) {
@@ -203,6 +219,7 @@ public class InfraccionService {
                 return InfraccionResponse.fromEntity(infraccionActualizada);
         }
 
+        @Override
         @Transactional
         public List<InfraccionResponse> findByDate(LocalDate date) {
                 LocalDateTime startOfDay = date.atStartOfDay();
@@ -218,34 +235,31 @@ public class InfraccionService {
         /**
          * Búsqueda avanzada con filtros combinados (Fecha y/o Fiscalizador).
          */
+        @Override
         @Transactional(readOnly = true)
-        public List<InfraccionResponse> findInfracciones(
-                        LocalDate date,
-                        String user) {
+        public Page<InfraccionResponse> findInfracciones(
+                        LocalDate startDate,
+                        LocalDate endDate,
+                        String user,
+                        Pageable pageable) {
 
-                List<Infraccion> infracciones;
+                LocalDateTime start = null;
+                LocalDateTime end = null;
 
-                if (date != null && user != null) {
-                        LocalDateTime start = date.atStartOfDay();
-                        LocalDateTime end = date.atTime(LocalTime.MAX);
-
-                        infracciones = infraccionRepository
-                                        .findByFechaBetweenAndIdFiscalizadorOrderByFechaDesc(start, end, user);
-                } else if (date != null) {
-                        LocalDateTime start = date.atStartOfDay();
-                        LocalDateTime end = date.atTime(LocalTime.MAX);
-
-                        infracciones = infraccionRepository
-                                        .findByFechaBetweenOrderByFechaDesc(start, end);
-                } else if (user != null) {
-                        infracciones = infraccionRepository
-                                        .findByIdFiscalizadorOrderByFechaDesc(user);
-                } else {
-                        infracciones = infraccionRepository.findAllByOrderByFechaDesc();
+                if (startDate != null) {
+                        start = startDate.atStartOfDay();
                 }
-                return infracciones.stream()
-                                .map(InfraccionResponse::fromEntity)
-                                .toList();
+                if (endDate != null) {
+                        end = endDate.atTime(23, 59, 59);
+                }
+
+                Page<Infraccion> infracciones = infraccionRepository.findByFilters(
+                                start,
+                                end,
+                                user,
+                                pageable);
+
+                return infracciones.map(InfraccionResponse::fromEntity);
         }
 
         /**
@@ -253,6 +267,7 @@ public class InfraccionService {
          * (accepted, rejected)
          * a los estados de la base de datos (APROBADA, RECHAZADA).
          */
+        @Override
         @Transactional
         public InfraccionResponse actualizarEstadoInfraccion(Integer id, String status, String idUsuario) {
                 Infraccion infraccion = infraccionRepository.findById(id)
@@ -289,6 +304,7 @@ public class InfraccionService {
          * 4. Si se cambia la 'fechaCitacion', crea o actualiza la entidad Citacion
          * aplicando formato seguro.
          */
+        @Override
         @Transactional
         public InfraccionResponse editarInfraccion(Integer id, java.util.Map<String, Object> request) {
                 log.info("Editando infracción ID: {}", id);
