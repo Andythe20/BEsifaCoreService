@@ -15,6 +15,6 @@ public interface IFiscalizadorPresenciaRepository extends JpaRepository<Fiscaliz
     /**
      * Busca los inspectores que han enviado un latido dentro del rango de tiempo válido.
      */
-    @Query("SELECT i FROM InspectorPresencia i WHERE i.ultimaConexion >= :tiempoCorte")
+    @Query("SELECT i FROM FiscalizadorPresencia i WHERE i.ultimaConexion >= :tiempoCorte")
     List<FiscalizadorPresencia> findFiscalizadorActivos(@Param("tiempoCorte") LocalDateTime tiempoCorte);
 }
