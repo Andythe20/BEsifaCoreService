@@ -13,6 +13,9 @@ import com.sifa.core_sifa.repository.ITipoInfraccionRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -27,6 +30,14 @@ public class TipoInfraccionServiceImpl implements ITipoInfraccionService{
                 .filter(t -> Boolean.TRUE.equals(t.getHabilitado()))
                 .map(TipoInfraccionDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TipoInfraccionDTO> findAllPaged(Pageable pageable) {
+        log.info("Listando tipos de infracción paginados - página: {}, tamaño: {}",
+                pageable.getPageNumber(), pageable.getPageSize());
+        return tipoInfraccionRepository.findByHabilitadoTrue(pageable)
+                .map(TipoInfraccionDTO::fromEntity);
     }
 
     @Transactional(readOnly = true)
