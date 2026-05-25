@@ -5,11 +5,12 @@ import com.sifa.core_sifa.model.FiscalizadorPresencia;
 import com.sifa.core_sifa.repository.IFiscalizadorPresenciaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @Slf4j
@@ -36,12 +37,12 @@ public class FiscalizadorPresenciaService {
     }
 
     /**
-     * Retorna la lista de inspectores activos en los últimos 10 minutos.
+     * Retorna la lista paginada de inspectores activos en los últimos 10 minutos.
      */
     @Transactional(readOnly = true)
-    public List<FiscalizadorPresencia> obtenerFiscalizadoresActivos() {
+    public Page<FiscalizadorPresencia> obtenerFiscalizadoresActivos(Pageable pageable) {
         // Tiempo de corte: Hace 10 minutos atrás
         LocalDateTime corte = LocalDateTime.now().minusMinutes(10);
-        return presenciaRepository.findFiscalizadorActivos(corte);
+        return presenciaRepository.findFiscalizadorActivos(corte, pageable);
     }
 }

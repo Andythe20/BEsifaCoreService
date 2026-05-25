@@ -6,11 +6,13 @@ import com.sifa.core_sifa.model.FiscalizadorPresencia;
 import com.sifa.core_sifa.service.FiscalizadorPresenciaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/core/api/v1/fis-activity")
@@ -39,8 +41,10 @@ public class FiscalizadorPresenciaController {
      */
     @PreAuthorize("hasAnyAuthority('USER_SUPERVISOR', 'USER_ADMIN')")
     @GetMapping("/activos")
-    public ResponseEntity<List<FiscalizadorPresencia>> getFiscalizadoresActivos() {
-        List<FiscalizadorPresencia> activos = presenciaService.obtenerFiscalizadoresActivos();
-        return ResponseEntity.ok(activos);
+    public ResponseEntity<Page<FiscalizadorPresencia>> getFiscalizadoresActivos(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("ultimaConexion").descending());
+        return ResponseEntity.ok(presenciaService.obtenerFiscalizadoresActivos(pageable));
     }
 }
