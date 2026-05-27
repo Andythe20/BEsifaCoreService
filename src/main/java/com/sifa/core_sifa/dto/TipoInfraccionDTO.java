@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 import com.sifa.core_sifa.model.TipoInfraccion;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 @Setter
@@ -14,11 +15,17 @@ import lombok.*;
 @AllArgsConstructor
 public class TipoInfraccionDTO {
 
+    @Schema(description = "Identificador del tipo de infraccion", example = "1")
     private Integer id;
+    @Schema(description = "Nombre del tipo de infraccion", example = "Exceso de velocidad")
     private String nombre;
+    @Schema(description = "Artículo de la ley correspondiente", example = "Art. 154, Ley de Tránsito 18.290")
     private String disposicionInfringida;
+    @Schema(description = "Campo para saber si esta habilitado", example = "true")
     private Boolean habilitado;
+    @Schema(description = "Hora a la que se crea", example = "2026-05-26 15:19:36.828831")
     private LocalDate createdAt;
+    @Schema(description = "Hora a la que se actualiza", example = "2026-05-26 15:19:36.828831")
     private LocalDateTime updatedAt;
 
     public static TipoInfraccionDTO fromEntity(TipoInfraccion tipoInfraccion) {

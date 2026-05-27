@@ -38,7 +38,7 @@ import java.util.Map;
 @RequestMapping("/core/api/v1/infracciones")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "3. Gestión de Infracciones", description = "Endpoints para la creación, edición y seguimiento procesal de las infracciones de tránsito")
+@Tag(name = "Gestión de Infracciones", description = "Endpoints para la creación, edición y seguimiento procesal de las infracciones de tránsito")
 public class InfraccionController {
 
     private final IInfraccionService infraccionService;
