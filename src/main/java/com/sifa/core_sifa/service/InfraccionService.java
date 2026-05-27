@@ -1,18 +1,11 @@
-package com.sifa.core_sifa.service.infraccion;
+package com.sifa.core_sifa.service;
 
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.sifa.core_sifa.dto.infraccion.CoordenadaDTO;
-import com.sifa.core_sifa.dto.infraccion.ReporteResumenDTO;
-import com.sifa.core_sifa.dto.infraccion.TopInfraccionDTO;
 import com.sifa.core_sifa.dto.infraccion.InfraccionCreateRequest;
 import com.sifa.core_sifa.dto.infraccion.InfraccionResponse;
 import com.sifa.core_sifa.dto.infraccion.InfraccionUpdateRequest;
@@ -22,7 +15,6 @@ import com.sifa.core_sifa.model.Infraccion;
 import com.sifa.core_sifa.repository.IInfraccionRepository;
 import com.sifa.core_sifa.repository.ITipoInfraccionRepository;
 import com.sifa.core_sifa.repository.IVehiculoRepository;
-import com.sifa.core_sifa.service.IStorageService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,26 +29,23 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class InfraccionServiceImpl implements IInfraccionService {
+public class InfraccionService {
 
         private final IInfraccionRepository infraccionRepository;
         private final IVehiculoRepository vehiculoRepository;
         private final ITipoInfraccionRepository tipoInfraccionRepository;
         private final IStorageService storageService;
 
-        @Override
         @Transactional(readOnly = true)
         public List<InfraccionResponse> findAllInfracciones() {
                 log.info("Listando todas las infracciones");
 
-                return infraccionRepository.findAll(
-                                Sort.by(Sort.Direction.DESC, "fecha"))
+                return infraccionRepository.findAllByOrderByFechaDesc()
                                 .stream()
                                 .map(InfraccionResponse::fromEntity)
                                 .collect(Collectors.toList());
         }
 
-        @Override
         @Transactional(readOnly = true)
         public InfraccionResponse findById(Integer idInfraccion) {
                 log.info("Buscando infraccion con id: {}", idInfraccion);
@@ -67,28 +56,22 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 return InfraccionResponse.fromEntity(infraccion);
         }
 
-        @Override
         @Transactional(readOnly = true)
-        public Page<InfraccionResponse> findByIdFiscalizador(
-                        String idFiscalizador,
-                        Pageable pageable) {
-
+        public List<InfraccionResponse> findByIdFiscalizador(String idFiscalizador) {
                 log.info("Buscando infracciones por id Fiscalizador: {}", idFiscalizador);
 
-                Page<Infraccion> listaInfracciones = infraccionRepository.findByIdFiscalizadorOrderByFechaDesc(
-                                idFiscalizador,
-                                pageable);
+                List<Infraccion> listaInfracciones = infraccionRepository.findByIdFiscalizadorOrderByFechaDesc(idFiscalizador);
 
-                return listaInfracciones.map(InfraccionResponse::fromEntity);
+                return listaInfracciones.stream()
+                                .map(InfraccionResponse::fromEntity)
+                                .collect(Collectors.toList());
         }
 
-        @Override
         @Transactional(readOnly = true)
         public List<InfraccionResponse> findByVehiculoPatente(String vehiculoPatente) {
                 log.info("Buscando infracciones por patente: {}", vehiculoPatente);
 
-                List<Infraccion> listaInfracciones = infraccionRepository
-                                .findByVehiculoPatenteOrderByFechaDesc(vehiculoPatente);
+                List<Infraccion> listaInfracciones = infraccionRepository.findByVehiculoPatenteOrderByFechaDesc(vehiculoPatente);
 
                 return listaInfracciones.stream()
                                 .map(InfraccionResponse::fromEntity)
@@ -105,7 +88,6 @@ public class InfraccionServiceImpl implements IInfraccionService {
          * 4. Si la inserción en BD falla, hace ROLLBACK físico eliminando los archivos
          * subidos al storage.
          */
-        @Override
         @Transactional
         public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, List<MultipartFile> fotos,
                         String idFiscalizador) {
@@ -188,7 +170,6 @@ public class InfraccionServiceImpl implements IInfraccionService {
          * 'RECHAZADA'.
          * 3. Registra la fecha de la resolución y el UUID del funcionario JPL.
          */
-        @Override
         @Transactional
         public InfraccionResponse procesarInfraccionPorJpl(Integer idInfraccion, InfraccionUpdateRequest request,
                         String idAdministrativoJpl) {
@@ -222,7 +203,6 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 return InfraccionResponse.fromEntity(infraccionActualizada);
         }
 
-        @Override
         @Transactional
         public List<InfraccionResponse> findByDate(LocalDate date) {
                 LocalDateTime startOfDay = date.atStartOfDay();
@@ -238,31 +218,34 @@ public class InfraccionServiceImpl implements IInfraccionService {
         /**
          * Búsqueda avanzada con filtros combinados (Fecha y/o Fiscalizador).
          */
-        @Override
         @Transactional(readOnly = true)
-        public Page<InfraccionResponse> findInfracciones(
-                        LocalDate startDate,
-                        LocalDate endDate,
-                        String user,
-                        Pageable pageable) {
+        public List<InfraccionResponse> findInfracciones(
+                        LocalDate date,
+                        String user) {
 
-                LocalDateTime start = null;
-                LocalDateTime end = null;
+                List<Infraccion> infracciones;
 
-                if (startDate != null) {
-                        start = startDate.atStartOfDay();
+                if (date != null && user != null) {
+                        LocalDateTime start = date.atStartOfDay();
+                        LocalDateTime end = date.atTime(LocalTime.MAX);
+
+                        infracciones = infraccionRepository
+                                        .findByFechaBetweenAndIdFiscalizadorOrderByFechaDesc(start, end, user);
+                } else if (date != null) {
+                        LocalDateTime start = date.atStartOfDay();
+                        LocalDateTime end = date.atTime(LocalTime.MAX);
+
+                        infracciones = infraccionRepository
+                                        .findByFechaBetweenOrderByFechaDesc(start, end);
+                } else if (user != null) {
+                        infracciones = infraccionRepository
+                                        .findByIdFiscalizadorOrderByFechaDesc(user);
+                } else {
+                        infracciones = infraccionRepository.findAllByOrderByFechaDesc();
                 }
-                if (endDate != null) {
-                        end = endDate.atTime(23, 59, 59);
-                }
-
-                Page<Infraccion> infracciones = infraccionRepository.findByFilters(
-                                start,
-                                end,
-                                user,
-                                pageable);
-
-                return infracciones.map(InfraccionResponse::fromEntity);
+                return infracciones.stream()
+                                .map(InfraccionResponse::fromEntity)
+                                .toList();
         }
 
         /**
@@ -270,7 +253,6 @@ public class InfraccionServiceImpl implements IInfraccionService {
          * (accepted, rejected)
          * a los estados de la base de datos (APROBADA, RECHAZADA).
          */
-        @Override
         @Transactional
         public InfraccionResponse actualizarEstadoInfraccion(Integer id, String status, String idUsuario) {
                 Infraccion infraccion = infraccionRepository.findById(id)
@@ -307,7 +289,6 @@ public class InfraccionServiceImpl implements IInfraccionService {
          * 4. Si se cambia la 'fechaCitacion', crea o actualiza la entidad Citacion
          * aplicando formato seguro.
          */
-        @Override
         @Transactional
         public InfraccionResponse editarInfraccion(Integer id, java.util.Map<String, Object> request) {
                 log.info("Editando infracción ID: {}", id);
@@ -388,81 +369,5 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 }
 
                 return InfraccionResponse.fromEntity(infraccionRepository.save(infraccion));
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public List<CoordenadaDTO> findCoordenadas(
-                        LocalDate startDate,
-                        LocalDate endDate,
-                        String user) {
-
-                LocalDateTime start = null;
-                LocalDateTime end = null;
-
-                if (startDate != null) {
-                        start = startDate.atStartOfDay();
-                }
-                if (endDate != null) {
-                        end = endDate.atTime(23, 59, 59);
-                }
-
-                return infraccionRepository.findCoordenadasByFilters(start, end, user);
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public ReporteResumenDTO obtenerResumenReporte(
-                        LocalDate startDate,
-                        LocalDate endDate,
-                        String user) {
-
-                LocalDateTime start = null;
-                LocalDateTime end = null;
-
-                if (startDate != null) {
-                        start = startDate.atStartOfDay();
-                }
-                if (endDate != null) {
-                        end = endDate.atTime(23, 59, 59);
-                }
-
-                // 1. Obtener coordenadas
-                List<CoordenadaDTO> coordenadas = infraccionRepository.findCoordenadasByFilters(start, end, user);
-
-                // 2. Obtener Top 3 tipos de infracción
-                List<TopInfraccionDTO> topInfracciones = infraccionRepository.findTopInfraccionesByFilters(
-                                start, end, user, org.springframework.data.domain.PageRequest.of(0, 3));
-
-                // 3. Obtener conteo por estados
-                List<Object[]> rawEstados = infraccionRepository.countEstadosByFilters(start, end, user);
-
-                java.util.Map<String, Long> estadosMap = new java.util.HashMap<>();
-                estadosMap.put("pending", 0L);
-                estadosMap.put("accepted", 0L);
-                estadosMap.put("rejected", 0L);
-                estadosMap.put("exported", 0L);
-
-                for (Object[] row : rawEstados) {
-                        String dbEstado = (String) row[0];
-                        Long count = (Long) row[1];
-                        if (dbEstado != null) {
-                                String frontendEstado = switch (dbEstado.toUpperCase()) {
-                                        case "PENDING", "EN PROCESO", "PENDIENTE" -> "pending";
-                                        case "ACCEPTED", "APROBADA", "ACEPTADA" -> "accepted";
-                                        case "REJECTED", "RECHAZADA" -> "rejected";
-                                        case "EXPORTED", "EXPORTADA" -> "exported";
-                                        default -> "pending";
-                                };
-                                estadosMap.put(frontendEstado, estadosMap.getOrDefault(frontendEstado, 0L) + count);
-                        }
-                }
-
-                return ReporteResumenDTO.builder()
-                                .coordenadas(coordenadas)
-                                .topInfracciones(topInfracciones)
-                                .estados(estadosMap)
-                                .totalCount((long) coordenadas.size())
-                                .build();
         }
 }
