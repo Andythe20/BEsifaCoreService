@@ -48,7 +48,7 @@ public class TipoInfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = Page.class)))
-    @ApiResponse(responseCode = "401", description = "No autorizado", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR', 'USER_APP')")
     @GetMapping("/all")
     public ResponseEntity<Page<TipoInfraccionDTO>> findAll(
@@ -67,7 +67,7 @@ public class TipoInfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = TipoInfraccionDTO.class)))
-    @ApiResponse(responseCode = "401", description = "No autorizado", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "El tipo de infracción no existe", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_APP')")
     @GetMapping("/id/{id}")
@@ -90,7 +90,7 @@ public class TipoInfraccionController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = TipoInfraccionDTO.class)))
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos", content = @Content())
-    @ApiResponse(responseCode = "401", description = "No autorizado", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN')")
     @PostMapping
     public ResponseEntity<TipoInfraccionDTO> create(
@@ -116,7 +116,7 @@ public class TipoInfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = TipoInfraccionDTO.class)))
-    @ApiResponse(responseCode = "401", description = "No autorizado", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "El tipo de infracción a modificar no existe", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN')")
     @PutMapping("/{id}")
@@ -135,7 +135,7 @@ public class TipoInfraccionController {
             description = "Realiza un borrado lógico del registro cambiando su estado 'habilitado' a falso. Previene que futuras multas utilicen este código sin romper la integridad referencial de las multas antiguas."
     )
     @ApiResponse(responseCode = "204", description = "Registro deshabilitado exitosamente (Sin contenido de respuesta)", content = @Content())
-    @ApiResponse(responseCode = "401", description = "No autorizado", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "El tipo de infracción a eliminar no existe", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN')")
     @DeleteMapping("/{id}")

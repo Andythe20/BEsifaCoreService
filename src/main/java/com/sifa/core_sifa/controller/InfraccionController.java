@@ -51,6 +51,7 @@ public class InfraccionController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
     @ApiResponse(responseCode = "400", description = "Parámetros de solicitud inválidos", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_APP', 'USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/all")
     public ResponseEntity<Page<InfraccionResponse>> getAllInfracciones(
@@ -81,6 +82,7 @@ public class InfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "Infracción no encontrada", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/id/{id}")
@@ -98,6 +100,7 @@ public class InfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "Fiscalizador no encontrado", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/fiscalizador/{idFiscalizador}")
@@ -119,6 +122,7 @@ public class InfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "Patente no encontrada", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
     @GetMapping("/vehiculo/{vehiculoPatente}")
@@ -138,6 +142,7 @@ public class InfraccionController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
     @ApiResponse(responseCode = "400", description = "Validación fallida en los datos", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado", content = @Content())
     @ApiResponse(responseCode = "415", description = "Falta el header multipart/form-data", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_APP')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -172,6 +177,7 @@ public class InfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "Infracción no encontrada", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_JPL')")
     @PutMapping("/{id}/procesar")
@@ -194,6 +200,7 @@ public class InfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "Infracción no encontrada", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_JPL')")
     @PatchMapping("/{id}")
@@ -223,6 +230,7 @@ public class InfraccionController {
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = InfraccionResponse.class)))
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @ApiResponse(responseCode = "404", description = "Infracción no encontrada", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_JPL')")
     @PutMapping("/{id}")
