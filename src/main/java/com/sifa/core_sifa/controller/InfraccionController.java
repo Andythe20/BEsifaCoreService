@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Pageable;
 
+import com.sifa.core_sifa.dto.infraccion.CoordenadaDTO;
+import com.sifa.core_sifa.dto.infraccion.ReporteResumenDTO;
 import com.sifa.core_sifa.dto.infraccion.InfraccionCreateRequest;
 import com.sifa.core_sifa.dto.infraccion.InfraccionResponse;
 import com.sifa.core_sifa.dto.infraccion.InfraccionUpdateRequest;
@@ -167,6 +169,7 @@ public class InfraccionController {
 
         InfraccionResponse nuevaInfraccion = infraccionService.crearInfraccion(request, fotos, idFiscalizador);
 
+        // Devolvemos un 201 CREATED, que es el estándar REST para recursos nuevos
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaInfraccion);
     }
 
@@ -190,9 +193,12 @@ public class InfraccionController {
 
         InfraccionResponse infraccionActualizada = infraccionService.procesarInfraccionPorJpl(id, request, idAdministrativoJpl);
 
+        // Devolvemos un 200 OK con el recurso actualizado
         return ResponseEntity.ok(infraccionActualizada);
     }
 
+    // Regla de Negocio: Solo el personal del Juzgado de Policía Local (USER_JPL)
+    // puede cambiar el estado de una infracción (Aprobada, Rechazada, etc.)
     @Operation(summary = "Actualizar estado rápido de infracción", description = "Modifica el estado transaccional (ej: pending, accepted, rejected).")
     @ApiResponse(
             responseCode = "200",
@@ -223,6 +229,8 @@ public class InfraccionController {
         return ResponseEntity.ok(response);
     }
 
+    // Regla de Negocio: Solo el personal del Juzgado de Policía Local (USER_JPL)
+    // puede editar o corregir campos de la infracción
     @Operation(summary = "Edición avanzada de campos", description = "Permite a un funcionario modificar selectivamente cualquier campo permitido de la multa.")
     @ApiResponse(
             responseCode = "200",
@@ -247,5 +255,69 @@ public class InfraccionController {
         log.info("Petición PUT recibida para editar campos de infracción ID: {}", id);
         InfraccionResponse response = infraccionService.editarInfraccion(id, body);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Obtener coordenadas para mapa de calor",
+            description = "Devuelve una lista plana con las coordenadas geográficas (latitud y longitud) de las infracciones. Permite filtrar por rango de fechas y por un fiscalizador específico. Ideal para renderizar mapas de calor en el Dashboard web."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Coordenadas obtenidas exitosamente",
+            content = @Content(
+                    mediaType = "application/json",
+                    array = @io.swagger.v3.oas.annotations.media.ArraySchema(
+                            schema = @Schema(implementation = CoordenadaDTO.class)
+                    )
+            )
+    )
+    @ApiResponse(responseCode = "400", description = "Parámetros de búsqueda inválidos (Ej: startDate mayor que endDate)", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado o expirado", content = @Content())
+    @PreAuthorize("hasAnyAuthority('USER_APP', 'USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
+    @GetMapping("/coordenadas")
+    public ResponseEntity<List<CoordenadaDTO>> getCoordenadas(
+            @Parameter(description = "Fecha de inicio del filtro (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Fecha de fin del filtro (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @Parameter(description = "Email del fiscalizador para filtrar sus multas") @RequestParam(required = false) String user) {
+
+        log.info("Obteniendo coordenadas de infracciones para el mapa de calor");
+
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("startDate no puede ser mayor que endDate");
+        }
+
+        List<CoordenadaDTO> coordenadas = infraccionService.findCoordenadas(startDate, endDate, user);
+        return ResponseEntity.ok(coordenadas);
+    }
+
+    @Operation(
+            summary = "Obtener resumen estadístico del sistema",
+            description = "Genera un reporte consolidado que incluye el conteo total agrupado por estados (pending, accepted, rejected, exported), el Top 3 de los tipos de infracciones más frecuentes y la data de geolocalización."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Resumen estadístico obtenido exitosamente",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ReporteResumenDTO.class)
+            )
+    )
+    @ApiResponse(responseCode = "400", description = "Parámetros de búsqueda inválidos (Ej: startDate mayor que endDate)", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado o expirado", content = @Content())
+    @PreAuthorize("hasAnyAuthority('USER_APP', 'USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
+    @GetMapping("/resumen-reporte")
+    public ResponseEntity<ReporteResumenDTO> getResumenReporte(
+            @Parameter(description = "Fecha de inicio del filtro (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Fecha de fin del filtro (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @Parameter(description = "Email del fiscalizador para filtrar sus métricas") @RequestParam(required = false) String user) {
+
+        log.info("Obteniendo resumen del reporte de infracciones");
+
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("startDate no puede ser mayor que endDate");
+        }
+
+        ReporteResumenDTO resumen = infraccionService.obtenerResumenReporte(startDate, endDate, user);
+        return ResponseEntity.ok(resumen);
     }
 }

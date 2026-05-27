@@ -10,6 +10,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.sifa.core_sifa.dto.infraccion.CoordenadaDTO;
+import com.sifa.core_sifa.dto.infraccion.ReporteResumenDTO;
+import com.sifa.core_sifa.dto.infraccion.TopInfraccionDTO;
 import com.sifa.core_sifa.dto.infraccion.InfraccionCreateRequest;
 import com.sifa.core_sifa.dto.infraccion.InfraccionResponse;
 import com.sifa.core_sifa.dto.infraccion.InfraccionUpdateRequest;
@@ -385,5 +388,81 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 }
 
                 return InfraccionResponse.fromEntity(infraccionRepository.save(infraccion));
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public List<CoordenadaDTO> findCoordenadas(
+                        LocalDate startDate,
+                        LocalDate endDate,
+                        String user) {
+
+                LocalDateTime start = null;
+                LocalDateTime end = null;
+
+                if (startDate != null) {
+                        start = startDate.atStartOfDay();
+                }
+                if (endDate != null) {
+                        end = endDate.atTime(23, 59, 59);
+                }
+
+                return infraccionRepository.findCoordenadasByFilters(start, end, user);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public ReporteResumenDTO obtenerResumenReporte(
+                        LocalDate startDate,
+                        LocalDate endDate,
+                        String user) {
+
+                LocalDateTime start = null;
+                LocalDateTime end = null;
+
+                if (startDate != null) {
+                        start = startDate.atStartOfDay();
+                }
+                if (endDate != null) {
+                        end = endDate.atTime(23, 59, 59);
+                }
+
+                // 1. Obtener coordenadas
+                List<CoordenadaDTO> coordenadas = infraccionRepository.findCoordenadasByFilters(start, end, user);
+
+                // 2. Obtener Top 3 tipos de infracción
+                List<TopInfraccionDTO> topInfracciones = infraccionRepository.findTopInfraccionesByFilters(
+                                start, end, user, org.springframework.data.domain.PageRequest.of(0, 3));
+
+                // 3. Obtener conteo por estados
+                List<Object[]> rawEstados = infraccionRepository.countEstadosByFilters(start, end, user);
+
+                java.util.Map<String, Long> estadosMap = new java.util.HashMap<>();
+                estadosMap.put("pending", 0L);
+                estadosMap.put("accepted", 0L);
+                estadosMap.put("rejected", 0L);
+                estadosMap.put("exported", 0L);
+
+                for (Object[] row : rawEstados) {
+                        String dbEstado = (String) row[0];
+                        Long count = (Long) row[1];
+                        if (dbEstado != null) {
+                                String frontendEstado = switch (dbEstado.toUpperCase()) {
+                                        case "PENDING", "EN PROCESO", "PENDIENTE" -> "pending";
+                                        case "ACCEPTED", "APROBADA", "ACEPTADA" -> "accepted";
+                                        case "REJECTED", "RECHAZADA" -> "rejected";
+                                        case "EXPORTED", "EXPORTADA" -> "exported";
+                                        default -> "pending";
+                                };
+                                estadosMap.put(frontendEstado, estadosMap.getOrDefault(frontendEstado, 0L) + count);
+                        }
+                }
+
+                return ReporteResumenDTO.builder()
+                                .coordenadas(coordenadas)
+                                .topInfracciones(topInfracciones)
+                                .estados(estadosMap)
+                                .totalCount((long) coordenadas.size())
+                                .build();
         }
 }
