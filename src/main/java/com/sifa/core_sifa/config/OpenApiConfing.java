@@ -24,9 +24,9 @@ public class OpenApiConfing {
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("Módulo Core del Sistema - SIFA")
+                        .title("Módulo de Negocio (Core) - SIFA")
                         .version("1.0.0")
-                        .description("Servicio encargado de la gestión de identidades, control de acceso basado en roles (RBAC) y emisión de Tokens JWT."))
+                        .description("Motor principal de reglas de negocio del ecosistema SIFA. Encargado de procesar y tipificar infracciones de tránsito en terreno, gestionar la telemetría GPS de los fiscalizadores y administrar el ciclo de vida de las citaciones del Juzgado de Policía Local (JPL)."))
                 .servers(List.of(gatewayServer))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
@@ -36,6 +36,6 @@ public class OpenApiConfing {
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
                                         .bearerFormat("JWT")
-                                        .description("Ingresa el Token JWT obtenido en el login para interactuar con las APIs protegidas.")));
+                                        .description("Ingresa el Token JWT válido emitido por el servicio de Autenticación para interactuar con las APIs del Core.")));
     }
 }
