@@ -114,7 +114,7 @@ Los logs se generan en:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS core_db;
-CREATE USER 'core_app'@'%' IDENTIFIED WITH caching_sha2_password BY '<password>';
+CREATE USER 'core_app'@'%' IDENTIFIED WITH caching_sha2_password BY 'password123';
 GRANT ALL PRIVILEGES ON core_db.* TO 'core_app'@'%';
 FLUSH PRIVILEGES;
 ```
