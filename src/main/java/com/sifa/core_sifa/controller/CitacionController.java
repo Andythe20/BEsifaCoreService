@@ -9,12 +9,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.sifa.core_sifa.dto.citacion.CitacionCreateRequest;
 import com.sifa.core_sifa.dto.citacion.CitacionResponse;
 import com.sifa.core_sifa.dto.citacion.CitacionUpdateRequest;
 import com.sifa.core_sifa.service.CitacionService;
@@ -50,32 +48,6 @@ public class CitacionController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(
-            summary = "Agendar nueva citación",
-            description = "Crea una citación en el JPL para una infracción específica. Lógica de negocio: La infracción base debe existir, debe estar en estado 'APROBADA' y no debe contar con una citación previamente agendada."
-    )
-    @ApiResponse(
-            responseCode = "201",
-            description = "Citación agendada exitosamente en el sistema",
-            content = @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = CitacionResponse.class)))
-    @ApiResponse(responseCode = "400", description = "Regla de negocio violada (ej. infracción no aprobada, ya posee citación, o fecha en el pasado)", content = @Content())
-    @ApiResponse(responseCode = "404", description = "La infracción a citar no fue encontrada", content = @Content())
-    @PreAuthorize("hasAnyAuthority('USER_JPL')")
-    @PostMapping
-    public ResponseEntity<CitacionResponse> crearCitacion(
-            @Parameter(description = "Payload que contiene el ID de la infracción y la fecha de la cita", required = true)
-            @Valid @RequestBody CitacionCreateRequest request,
-
-            @Parameter(hidden = true) @RequestHeader("X-Auth-User") String emailAdministrativoJpl) {
-
-        log.info("Petición de creación de citación recibida. Administrativo: {}", emailAdministrativoJpl);
-        CitacionResponse nuevaCitacion = citacionService.crearCitacion(request, emailAdministrativoJpl);
-
-        // Retornamos 201 CREATED
-        return ResponseEntity.status(HttpStatus.CREATED).body(nuevaCitacion);
-    }
 
     @Operation(
             summary = "Reprogramar citación",

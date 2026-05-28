@@ -51,4 +51,9 @@ public class InfraccionCreateRequest {
     @Schema(description = "Campo que puede ser llenado cuando se esta registrando la infraccion", example = "El vehiculo estaba estacionado en medio de un paso cebra")
     private String observaciones;
 
+    @Schema(description = "Fecha de citación al JPL", example = "2024-05-20T14:30:00")
+    @NotNull(message = "La fecha de citación al JPL es obligatoria para el flujo empadronado")
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+    private LocalDateTime fechaCitacion;
+
 }
