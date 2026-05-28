@@ -2,7 +2,6 @@ package com.sifa.core_sifa.service;
 
 import org.springframework.transaction.annotation.Transactional;
 
-import com.sifa.core_sifa.dto.citacion.CitacionCreateRequest;
 import com.sifa.core_sifa.dto.citacion.CitacionResponse;
 import com.sifa.core_sifa.dto.citacion.CitacionUpdateRequest;
 import com.sifa.core_sifa.exception.ResourceNotFoundException;
@@ -15,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -24,17 +25,12 @@ public class CitacionService {
     private final IInfraccionRepository infraccionRepository;
 
     @Transactional
-    public CitacionResponse crearCitacion(CitacionCreateRequest request, String emailAdministrativoJpl) {
-        log.info("Administrativo {} creando citación para la infracción ID: {}", emailAdministrativoJpl, request.getIdInfraccion());
+    public CitacionResponse crearCitacion(Integer idInfraccion, LocalDateTime fechaCitacion) {
+        log.info("Creando citación para la infracción ID: {}", idInfraccion);
 
         // Validar que la infracción exista
-        Infraccion infraccion = infraccionRepository.findById(request.getIdInfraccion())
-                .orElseThrow(() -> new ResourceNotFoundException("Infracción no encontrada con ID: " + request.getIdInfraccion()));
-
-        // Validar que la infraccion esté aprobada antes de generar una citación
-        if (!"APROBADA".equalsIgnoreCase(infraccion.getEstado())) {
-            throw new IllegalStateException("Solo se pueden generar citaciones para infracciones en estado APROBADA. Estado actual: " + infraccion.getEstado());
-        }
+        Infraccion infraccion = infraccionRepository.findById(idInfraccion)
+                .orElseThrow(() -> new ResourceNotFoundException("Infracción no encontrada con ID: " + idInfraccion));
 
         // Lógica de negocio (Relación 1:1): Validar que no exista ya una citación
         if (infraccion.getCitacion() != null) {
@@ -43,7 +39,7 @@ public class CitacionService {
 
         // Construir la entidad Citacion
         Citacion nuevaCitacion = Citacion.builder()
-                .fecha(request.getFecha()) // En este caso, el JPL sí define para cuándo es la cita
+                .fecha(fechaCitacion)
                 .infraccion(infraccion)
                 .build();
 
