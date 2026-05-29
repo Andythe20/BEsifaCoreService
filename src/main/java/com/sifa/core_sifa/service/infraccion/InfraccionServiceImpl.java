@@ -1,5 +1,6 @@
 package com.sifa.core_sifa.service.infraccion;
 
+import com.sifa.core_sifa.dto.infraccion.*;
 import com.sifa.core_sifa.service.CitacionService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -11,12 +12,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.sifa.core_sifa.dto.infraccion.CoordenadaDTO;
-import com.sifa.core_sifa.dto.infraccion.ReporteResumenDTO;
-import com.sifa.core_sifa.dto.infraccion.TopInfraccionDTO;
-import com.sifa.core_sifa.dto.infraccion.InfraccionCreateRequest;
-import com.sifa.core_sifa.dto.infraccion.InfraccionResponse;
-import com.sifa.core_sifa.dto.infraccion.InfraccionUpdateRequest;
 import com.sifa.core_sifa.exception.ResourceNotFoundException;
 import com.sifa.core_sifa.model.EvidenciaFotografica;
 import com.sifa.core_sifa.model.Infraccion;
@@ -470,5 +465,29 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 .estados(estadosMap)
                 .totalCount((long) coordenadas.size())
                 .build();
+    }
+
+    /**
+     * Permite la obtencion de la cantidad de infracciones realizadas por fiscalizador
+     * dentro de un rango de fecha válido
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductividadFiscalizadorDTO> obtenerProductividad(LocalDate startDate, LocalDate endDate) {
+        log.info("Generando reporte de productividad de fiscalizadores");
+
+        // Si no vienen fechas, asumimos el "mismo día" (hoy) para cumplir la subtarea
+        LocalDate inicio = (startDate != null) ? startDate : LocalDate.now();
+        LocalDate fin = (endDate != null) ? endDate : LocalDate.now();
+
+        if (inicio.isAfter(fin)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin.");
+        }
+
+        // Convertimos a LocalDateTime abarcando desde las 00:00:00 hasta las 23:59:59
+        LocalDateTime startDateTime = inicio.atStartOfDay();
+        LocalDateTime endDateTime = fin.atTime(23, 59, 59);
+
+        return infraccionRepository.countProductividadPorFiscalizador(startDateTime, endDateTime);
     }
 }
