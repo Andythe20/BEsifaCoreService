@@ -1,5 +1,6 @@
 package com.sifa.core_sifa.controller;
 
+import com.sifa.core_sifa.dto.infraccion.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -25,11 +26,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Pageable;
 
-import com.sifa.core_sifa.dto.infraccion.CoordenadaDTO;
-import com.sifa.core_sifa.dto.infraccion.ReporteResumenDTO;
-import com.sifa.core_sifa.dto.infraccion.InfraccionCreateRequest;
-import com.sifa.core_sifa.dto.infraccion.InfraccionResponse;
-import com.sifa.core_sifa.dto.infraccion.InfraccionUpdateRequest;
 import com.sifa.core_sifa.service.infraccion.IInfraccionService;
 
 import java.time.LocalDate;
@@ -319,5 +315,38 @@ public class InfraccionController {
 
         ReporteResumenDTO resumen = infraccionService.obtenerResumenReporte(startDate, endDate, user);
         return ResponseEntity.ok(resumen);
+    }
+
+    @Operation(
+            summary = "Reporte de Productividad por Fiscalizador",
+            description = "Genera un reporte con la cantidad de infracciones cursadas por cada funcionario. Si no se envían parámetros de fecha, retorna la productividad del día en curso. Exclusivo para auditorías."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Reporte generado con éxito",
+            content = @Content(
+                    mediaType = "application/json",
+                    array = @io.swagger.v3.oas.annotations.media.ArraySchema(
+                            schema = @Schema(implementation = ProductividadFiscalizadorDTO.class)
+                    )
+            )
+    )
+    @ApiResponse(responseCode = "400", description = "Fechas inválidas", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado o expirado", content = @Content())
+    @ApiResponse(responseCode = "403", description = "No tiene permisos para ver reportes", content = @Content())
+    // RESTRICCIÓN DE SEGURIDAD EXIGIDA POR LA HU33
+    @PreAuthorize("hasAnyAuthority('USER_SUPERVISOR', 'USER_ADMIN')")
+    @GetMapping("/reporte/productividad")
+    public ResponseEntity<List<ProductividadFiscalizadorDTO>> getProductividad(
+            @Parameter(description = "Fecha de inicio (YYYY-MM-DD). Opcional, por defecto es hoy.")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+
+            @Parameter(description = "Fecha de fin (YYYY-MM-DD). Opcional, por defecto es hoy.")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        log.info("Petición GET para reporte de productividad");
+        List<ProductividadFiscalizadorDTO> reporte = infraccionService.obtenerProductividad(startDate, endDate);
+
+        return ResponseEntity.ok(reporte);
     }
 }
