@@ -14,8 +14,18 @@ import java.time.LocalDateTime;
 public interface IFiscalizadorPresenciaRepository extends JpaRepository<FiscalizadorPresencia, String> {
 
     /**
-     * Busca los inspectores que han enviado un latido dentro del rango de tiempo válido.
+     * Busca los inspectores activos en los últimos 10 minutos,
+     * devolviendo estrictamente su última ubicación conocida (un solo registro por inspector).
      */
-    @Query("SELECT i FROM FiscalizadorPresencia i WHERE i.ultimaConexion >= :tiempoCorte")
-    Page<FiscalizadorPresencia> findFiscalizadorActivos(@Param("tiempoCorte") LocalDateTime tiempoCorte, Pageable pageable);
+    @Query("SELECT f FROM FiscalizadorPresencia f " +
+            "WHERE f.ultimaConexion >= :tiempoCorte " +
+            "AND f.ultimaConexion = (" +
+            "    SELECT MAX(f2.ultimaConexion) " +
+            "    FROM FiscalizadorPresencia f2 " +
+            "    WHERE f2.emailUsuario = f.emailUsuario" +
+            ")")
+    Page<FiscalizadorPresencia> findFiscalizadorActivos(
+            @Param("tiempoCorte") LocalDateTime tiempoCorte,
+            Pageable pageable
+    );
 }
