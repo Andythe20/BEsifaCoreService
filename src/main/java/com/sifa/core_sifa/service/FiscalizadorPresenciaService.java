@@ -30,6 +30,9 @@ public class FiscalizadorPresenciaService {
                 .emailUsuario(email)
                 .latitud(request.getLatitud())
                 .longitud(request.getLongitud())
+                .deviceId(request.getDeviceId())
+                .marca(request.getMarca())
+                .modelo(request.getModelo())
                 .ultimaConexion(LocalDateTime.now())
                 .build();
 
