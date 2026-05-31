@@ -1,0 +1,110 @@
+name: Build and Deploy Core Service
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Export secrets from Doppler
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          doppler secrets download \
+            --no-file \
+            --format json | jq -r '
+              to_entries[]
+              | "\(.key)<<EOF\n\(.value)\nEOF"
+            ' >> $GITHUB_ENV
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+
+      - name: Build Docker image
+        run: |
+          docker build -t jarodsm/sifa-core:latest .
+
+      - name: Push Docker image
+        run: |
+          docker push jarodsm/sifa-core:latest
+
+      - name: Generate runtime env
+        run: |
+          cat > core.env <<EOF
+          DB_HOST=${DB_HOST}
+          DB_PORT=${DB_PORT}
+          DB_NAME=${DB_NAME}
+          DB_USER=${DB_USER}
+          DB_PASSWORD=${DB_PASSWORD}
+
+          SERVER_PORT=8083
+          SPRING_PROFILES_ACTIVE=prod
+
+          AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+          AWS_S3_REGION=${AWS_S3_REGION}
+          EOF
+
+      - name: Create SSH key
+        run: |
+          echo "${EC2_SSH_KEY}" > key.pem
+          chmod 600 key.pem
+
+      - name: Copy env to core server
+        run: |
+          scp \
+            -i key.pem \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ProxyCommand="ssh -i key.pem -W %h:%p ubuntu@${EC2_HOST}" \
+            core.env \
+            ubuntu@${CORE_PRIVATE_HOST}:/tmp/core.env
+
+      - name: Deploy Core Service
+        run: |
+          ssh \
+            -i key.pem \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ProxyCommand="ssh -i key.pem -W %h:%p ubuntu@${EC2_HOST}" \
+            ubuntu@${CORE_PRIVATE_HOST} << 'EOF'
+
+              set -e
+
+              echo "Pulling latest image..."
+              docker pull jarodsm/sifa-core:latest
+
+              echo "Stopping old container..."
+              docker rm -f sifa-core || true
+
+              echo "Starting new container..."
+
+              docker run -d \
+                --name sifa-core \
+                --restart unless-stopped \
+                -p 80:8083 \
+                --env-file /tmp/core.env \
+                jarodsm/sifa-core:latest
+
+              echo "Deployment completed successfully."
+
+          EOF
+
+      - name: Cleanup
+        run: |
+          rm -f key.pem
+          rm -f core.env
