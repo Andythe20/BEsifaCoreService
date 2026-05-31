@@ -70,7 +70,7 @@ jobs:
             -i key.pem \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o ProxyCommand="ssh -i key.pem -W %h:%p ubuntu@${EC2_HOST}" \
+            -o ProxyCommand="ssh -i key.pem -W %h:%p -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${EC2_HOST}" \
             core.env \
             ubuntu@${CORE_PRIVATE_HOST}:/tmp/core.env
 
@@ -80,7 +80,7 @@ jobs:
             -i key.pem \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o ProxyCommand="ssh -i key.pem -W %h:%p ubuntu@${EC2_HOST}" \
+            -o ProxyCommand="ssh -i key.pem -W %h:%p -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${EC2_HOST}" \
             ubuntu@${CORE_PRIVATE_HOST} << 'EOF'
 
               set -e
