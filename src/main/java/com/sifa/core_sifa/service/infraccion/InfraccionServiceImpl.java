@@ -47,7 +47,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
         log.info("Listando todas las infracciones");
 
         return infraccionRepository.findAll(
-                        Sort.by(Sort.Direction.DESC, "fecha"))
+                Sort.by(Sort.Direction.DESC, "fecha"))
                 .stream()
                 .map(InfraccionResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -105,7 +105,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
     @Override
     @Transactional
     public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, List<MultipartFile> fotos,
-                                              String idFiscalizador) {
+            String idFiscalizador) {
         log.info("Iniciando creación de infracción para patente: {}", request.getPatenteVehiculo());
 
         var vehiculo = vehiculoRepository.findById(request.getPatenteVehiculo())
@@ -192,7 +192,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
     @Override
     @Transactional
     public InfraccionResponse procesarInfraccionPorJpl(Integer idInfraccion, InfraccionUpdateRequest request,
-                                                       String idAdministrativoJpl) {
+            String idAdministrativoJpl) {
         log.info("Administrativo JPL {} procesando infracción ID: {}", idAdministrativoJpl, idInfraccion);
 
         Infraccion infraccion = infraccionRepository.findById(idInfraccion)
@@ -245,6 +245,8 @@ public class InfraccionServiceImpl implements IInfraccionService {
             LocalDate startDate,
             LocalDate endDate,
             String user,
+            String status,
+            String search,
             Pageable pageable) {
 
         LocalDateTime start = null;
@@ -257,10 +259,25 @@ public class InfraccionServiceImpl implements IInfraccionService {
             end = endDate.atTime(23, 59, 59);
         }
 
+        String dbStatus = null;
+        if (status != null && !status.isEmpty() && !status.equalsIgnoreCase("all")) {
+            dbStatus = switch (status.toLowerCase()) {
+                case "pending" -> "EN PROCESO";
+                case "accepted" -> "APROBADA";
+                case "rejected" -> "RECHAZADA";
+                case "exported" -> "EXPORTADA";
+                default -> null;
+            };
+        }
+
+        String searchQuery = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
         Page<Infraccion> infracciones = infraccionRepository.findByFilters(
                 start,
                 end,
                 user,
+                dbStatus,
+                searchQuery,
                 pageable);
 
         return infracciones.map(InfraccionResponse::fromEntity);
@@ -436,7 +453,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 start, end, user, org.springframework.data.domain.PageRequest.of(0, 3));
 
         // 3. Obtener conteo por estados
-        List<Object[]> rawEstados = infraccionRepository.countEstadosByFilters(start, end, user);
+        List<Object[]> rawEstados = infraccionRepository.countEstadosByFilters(start, end, user, null);
 
         java.util.Map<String, Long> estadosMap = new java.util.HashMap<>();
         estadosMap.put("pending", 0L);
@@ -468,7 +485,8 @@ public class InfraccionServiceImpl implements IInfraccionService {
     }
 
     /**
-     * Permite la obtencion de la cantidad de infracciones realizadas por fiscalizador
+     * Permite la obtencion de la cantidad de infracciones realizadas por
+     * fiscalizador
      * dentro de un rango de fecha válido
      */
     @Override
@@ -489,5 +507,66 @@ public class InfraccionServiceImpl implements IInfraccionService {
         LocalDateTime endDateTime = fin.atTime(23, 59, 59);
 
         return infraccionRepository.countProductividadPorFiscalizador(startDateTime, endDateTime);
+    }
+
+    /**
+     * Genera un resumen estadístico liviano para el Dashboard.
+     * Retorna el total de infracciones y la cantidad agrupada por estado (GROUP BY).
+     * Si no se envían fechas, filtra por el día actual (diario por defecto).
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public DashboardEstadisticasDTO obtenerEstadisticasDashboard(LocalDate startDate, LocalDate endDate, String user, String search) {
+        log.info("Generando estadísticas del Dashboard");
+
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin.");
+        }
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        }
+        if (endDate != null) {
+            endDateTime = endDate.atTime(23, 59, 59);
+        }
+
+        String searchQuery = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Reutilizar el query GROUP BY estado existente en el repositorio
+        List<Object[]> rawEstados = infraccionRepository.countEstadosByFilters(startDateTime, endDateTime, user, searchQuery);
+
+        java.util.Map<String, Long> estadosMap = new java.util.LinkedHashMap<>();
+        estadosMap.put("pending", 0L);
+        estadosMap.put("accepted", 0L);
+        estadosMap.put("rejected", 0L);
+        estadosMap.put("exported", 0L);
+
+        long total = 0L;
+
+        for (Object[] row : rawEstados) {
+            String dbEstado = (String) row[0];
+            Long count = (Long) row[1];
+            if (dbEstado != null) {
+                String frontendEstado = switch (dbEstado.toUpperCase()) {
+                    case "PENDING", "EN PROCESO", "PENDIENTE" -> "pending";
+                    case "ACCEPTED", "APROBADA", "ACEPTADA" -> "accepted";
+                    case "REJECTED", "RECHAZADA" -> "rejected";
+                    case "EXPORTED", "EXPORTADA" -> "exported";
+                    default -> "pending";
+                };
+                estadosMap.put(frontendEstado, estadosMap.getOrDefault(frontendEstado, 0L) + count);
+            }
+            total += count;
+        }
+
+        return DashboardEstadisticasDTO.builder()
+                .totalInfracciones(total)
+                .cantidadPorEstado(estadosMap)
+                .fechaInicio(startDate)
+                .fechaFin(endDate)
+                .build();
     }
 }

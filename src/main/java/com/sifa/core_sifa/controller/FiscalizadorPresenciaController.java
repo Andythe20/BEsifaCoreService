@@ -1,6 +1,5 @@
 package com.sifa.core_sifa.controller;
 
-
 import com.sifa.core_sifa.dto.fiscalizador.FiscalizadorHeartbeatRequest;
 import com.sifa.core_sifa.model.FiscalizadorPresencia;
 import com.sifa.core_sifa.service.FiscalizadorPresenciaService;
@@ -13,7 +12,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -33,18 +31,14 @@ public class FiscalizadorPresenciaController {
      * Endpoint que llamará la App Móvil periódicamente.
      * Rol requerido: USER_APP (Fiscalizador)
      */
-    @Operation(
-            summary = "Registrar latido GPS (Heartbeat)",
-            description = "Invocado periódicamente en segundo plano por la App Móvil para actualizar la ubicación geográfica en tiempo real del fiscalizador. Mantiene su estado como 'Activo' en el Dashboard."
-    )
+    @Operation(summary = "Registrar latido GPS (Heartbeat)", description = "Invocado periódicamente en segundo plano por la App Móvil para actualizar la ubicación geográfica en tiempo real del fiscalizador. Mantiene su estado como 'Activo' en el Dashboard.")
     @ApiResponse(responseCode = "200", description = "Latido de presencia registrado y actualizado exitosamente")
     @ApiResponse(responseCode = "400", description = "El payload de coordenadas es inválido o está vacío", content = @Content())
     @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_APP')")
     @PostMapping("/heartbeat")
     public ResponseEntity<Void> recibirHeartbeat(
-            @Parameter(description = "Payload con las coordenadas GPS actuales", required = true)
-            @Valid @RequestBody FiscalizadorHeartbeatRequest request,
+            @Parameter(description = "Payload con las coordenadas GPS actuales", required = true) @Valid @RequestBody FiscalizadorHeartbeatRequest request,
 
             @Parameter(hidden = true) @RequestHeader("X-Auth-User") String emailInspector) {
 
@@ -56,10 +50,7 @@ public class FiscalizadorPresenciaController {
      * Endpoint que consultará el Dashboard Web del supervisor.
      * Roles permitidos: Supervisores o Administradores
      */
-    @Operation(
-            summary = "Listar fiscalizadores activos",
-            description = "Retorna una lista paginada con la última ubicación conocida de los fiscalizadores. Por regla de negocio, solo incluye a aquellos que han emitido un latido (heartbeat) en los últimos 10 minutos."
-    )
+    @Operation(summary = "Listar fiscalizadores activos", description = "Retorna una lista paginada con la última ubicación conocida de los fiscalizadores. Por regla de negocio, solo incluye a aquellos que han emitido un latido (heartbeat) en los últimos 10 minutos.")
     @ApiResponse(responseCode = "200", description = "Lista de fiscalizadores activos obtenida correctamente")
     @ApiResponse(responseCode = "401", description = "No autorizado, token no proporcionado", content = @Content())
     @PreAuthorize("hasAnyAuthority('USER_SUPERVISOR', 'USER_ADMIN')")

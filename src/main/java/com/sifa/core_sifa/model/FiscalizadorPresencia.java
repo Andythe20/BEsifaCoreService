@@ -3,7 +3,6 @@ package com.sifa.core_sifa.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 // Entidad para saber la actividad del fiscalizador
