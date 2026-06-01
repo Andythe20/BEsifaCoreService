@@ -13,7 +13,10 @@ import com.sifa.core_sifa.repository.IPropietarioVehiculoRepository;
 import com.sifa.core_sifa.repository.ITipoInfraccionRepository;
 import com.sifa.core_sifa.repository.IVehiculoRepository;
 
-/** Clase para poblar datos en las tablas vehiculos, propietarios vehiculos y tipo infracciones */
+/**
+ * Clase para poblar datos en las tablas vehiculos, propietarios vehiculos y
+ * tipo infracciones
+ */
 @Configuration
 @Slf4j
 public class DataInitializerConfig {
@@ -23,8 +26,7 @@ public class DataInitializerConfig {
     public CommandLineRunner initData(
             ITipoInfraccionRepository tipoInfraccionRepo,
             IPropietarioVehiculoRepository propietarioRepo,
-            IVehiculoRepository vehiculoRepo
-    ) {
+            IVehiculoRepository vehiculoRepo) {
 
         return args -> {
             log.info("========================================================");
@@ -79,7 +81,8 @@ public class DataInitializerConfig {
                         .build();
 
                 vehiculoRepo.save(vehiculo);
-                log.info("[+] Vehículo patente {} (Subaru Outback) registrado y enlazado al RUT {}.", patente, rutPropietario);
+                log.info("[+] Vehículo patente {} (Subaru Outback) registrado y enlazado al RUT {}.", patente,
+                        rutPropietario);
             } else {
                 log.info("[-] Vehículo patente {} ya existe. Se omite inserción.", patente);
             }
