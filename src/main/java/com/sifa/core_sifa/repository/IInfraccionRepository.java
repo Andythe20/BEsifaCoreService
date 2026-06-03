@@ -40,14 +40,24 @@ public interface IInfraccionRepository extends JpaRepository<Infraccion, Integer
     @Query("""
                 SELECT i
                 FROM Infraccion i
+                LEFT JOIN i.vehiculo v
+                LEFT JOIN i.tipoInfraccion ti
                 WHERE (:start IS NULL OR i.fecha >= :start)
                 AND (:end IS NULL OR i.fecha <= :end)
                 AND (:user IS NULL OR i.idFiscalizador = :user)
+                AND (:status IS NULL OR i.estado = :status)
+                AND (:search IS NULL OR 
+                     LOWER(v.patente) LIKE LOWER(CONCAT('%', :search, '%')) OR 
+                     LOWER(ti.nombre) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                     CAST(i.idInfraccion AS string) LIKE CONCAT('%', :search, '%')
+                    )
             """)
     Page<Infraccion> findByFilters(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("user") String user,
+            @Param("status") String status,
+            @Param("search") String search,
             Pageable pageable);
 
     @Query("""
@@ -80,23 +90,31 @@ public interface IInfraccionRepository extends JpaRepository<Infraccion, Integer
     @Query("""
                 SELECT i.estado, COUNT(i)
                 FROM Infraccion i
+                LEFT JOIN i.vehiculo v
+                LEFT JOIN i.tipoInfraccion ti
                 WHERE (:start IS NULL OR i.fecha >= :start)
                 AND (:end IS NULL OR i.fecha <= :end)
                 AND (:user IS NULL OR i.idFiscalizador = :user)
+                AND (:search IS NULL OR 
+                     LOWER(v.patente) LIKE LOWER(CONCAT('%', :search, '%')) OR 
+                     LOWER(ti.nombre) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                     CAST(i.idInfraccion AS string) LIKE CONCAT('%', :search, '%')
+                    )
                 GROUP BY i.estado
             """)
     List<Object[]> countEstadosByFilters(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
-            @Param("user") String user);
+            @Param("user") String user,
+            @Param("search") String search);
 
-    @Query("SELECT new com.sifa.core_sifa.dto.infraccion.ProductividadFiscalizadorDTO(i.idFiscalizador, COUNT(i)) " +
+    @Query("SELECT new com.sifa.core_sifa.dto.infraccion.ProductividadFiscalizadorDTO(i.idFiscalizador, COUNT(i)) "
+            +
             "FROM Infraccion i " +
             "WHERE i.fecha BETWEEN :start AND :end " +
             "GROUP BY i.idFiscalizador " +
             "ORDER BY COUNT(i) DESC")
     List<ProductividadFiscalizadorDTO> countProductividadPorFiscalizador(
             @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
-    );
+            @Param("end") LocalDateTime end);
 }

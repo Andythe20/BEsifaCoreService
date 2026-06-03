@@ -2,14 +2,10 @@ package com.sifa.core_sifa.model;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+
+import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -27,7 +23,7 @@ public class AuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer idAuditLog;
+    private Long idAuditLog;
 
     @NotNull
     @Column(nullable = false)
@@ -37,13 +33,11 @@ public class AuditLog {
     @Column(nullable = false)
     private String accion;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String tablaAfectada;
 
-    @NotNull
-    @Column(nullable = false)
-    private Integer idRegistroAfectado;
+    @Column(nullable = true)
+    private String idRegistroAfectado;
 
     // No existe un dato natiivo JSON, se usa el par clave valor para flexibilidad
     @JdbcTypeCode(org.hibernate.type.SqlTypes.JSON) // traductor necesario para el traspaso del dato entre la bd y java
@@ -54,5 +48,11 @@ public class AuditLog {
     @NotNull
     @Column(nullable = false)
     private LocalDateTime fechaHora;
+
+    // Autogenerar la fecha antes de insertar para no depender del controlador
+    @PrePersist
+    protected void onCreate() {
+        this.fechaHora = LocalDateTime.now();
+    }
 
 }

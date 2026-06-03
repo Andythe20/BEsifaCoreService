@@ -1,8 +1,9 @@
 package com.sifa.core_sifa.service;
 
+import com.sifa.core_sifa.dto.audit.AuditLogRequestDTO;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.sifa.core_sifa.dto.AuditLogDTO;
+import com.sifa.core_sifa.dto.audit.AuditLogResponseDTO;
 import com.sifa.core_sifa.exception.ResourceNotFoundException;
 import com.sifa.core_sifa.model.AuditLog;
 import com.sifa.core_sifa.repository.IAuditLogRepository;
@@ -12,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 @Slf4j
@@ -22,43 +22,44 @@ public class AuditLogService {
     private final IAuditLogRepository auditLogRepository;
 
     @Transactional(readOnly = true)
-    public AuditLogDTO findById(Integer id){
+    public AuditLogResponseDTO findById(Long id) {
         log.info("Buscando auditoria con id: {}", id);
         AuditLog auditLog = auditLogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Auditoría no encontrada o inexistente"));
 
-        return AuditLogDTO.fromEntity(auditLog);
+        return AuditLogResponseDTO.fromEntity(auditLog);
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLogDTO> findAllAuditLogs() {
+    public List<AuditLogResponseDTO> findAllAuditLogs() {
         log.info("Listando todas las auditorias");
         return auditLogRepository.findAll()
                 .stream()
-                .map(AuditLogDTO::fromEntity)
+                .map(AuditLogResponseDTO::fromEntity)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLogDTO> findByEmailUsuario(String emailUsuario) {
+    public List<AuditLogResponseDTO> findByEmailUsuario(String emailUsuario) {
         log.info("Listando todas las auditorias del usuario {}", emailUsuario);
         return auditLogRepository.findByEmailUsuario(emailUsuario)
                 .stream()
-                .map(AuditLogDTO::fromEntity)
+                .map(AuditLogResponseDTO::fromEntity)
                 .toList();
     }
 
     @Transactional
-    public void crearAuditoria(String emailUsuario, String accion, Map<String, Object> detalles) {
-        log.info("Guardando log de auditoría para: {}", emailUsuario);
-        AuditLog nuevoLog = AuditLog.builder()
-                .emailUsuario(emailUsuario)
-                .accion(accion)
-                .detalles(detalles)
-                .fechaHora(java.time.LocalDateTime.now())
+    public void registrarLog(AuditLogRequestDTO request) {
+        AuditLog logEntity = AuditLog.builder()
+                .emailUsuario(request.getEmailUsuario())
+                .accion(request.getAccion())
+                .tablaAfectada(request.getTablaAfectada())
+                .idRegistroAfectado(request.getIdRegistroAfectado())
+                .detalles(request.getDetalles())
                 .build();
 
-        auditLogRepository.save(nuevoLog);
+        auditLogRepository.save(logEntity);
+        log.info("Auditoría guardada exitosamente | Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
     }
 
 
