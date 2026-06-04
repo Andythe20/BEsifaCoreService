@@ -9,6 +9,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import com.sifa.core_sifa.dto.citacion.CitacionResponse;
 import com.sifa.core_sifa.dto.citacion.CitacionUpdateRequest;
 import com.sifa.core_sifa.service.CitacionService;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/core/api/v1/citaciones")
@@ -25,6 +31,34 @@ import com.sifa.core_sifa.service.CitacionService;
 public class CitacionController {
 
     private final CitacionService citacionService;
+
+    @Operation(
+            summary = "Listar citaciones con filtros",
+            description = "Retorna un listado paginado de citaciones con sus infracciones asociadas. Soporta filtrado por rango de fechas y búsqueda por patente, RUT o nombre del infractor."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Listado de citaciones obtenido exitosamente")
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
+    @GetMapping("/all")
+    public ResponseEntity<Page<CitacionResponse>> getAllCitaciones(
+            @Parameter(description = "Número de página (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Fecha inicio del rango (yyyy-MM-dd)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Fecha fin del rango (yyyy-MM-dd)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @Parameter(description = "Búsqueda por patente, RUT, nombre o ID infracción")
+            @RequestParam(required = false) String search) {
+
+        log.info("Petición GET para listar citaciones - page: {}, size: {}, startDate: {}, endDate: {}, search: {}",
+                page, size, startDate, endDate, search);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<CitacionResponse> citaciones = citacionService.findAll(startDate, endDate, search, pageable);
+
+        return ResponseEntity.ok(citaciones);
+    }
 
     @Operation(
             summary = "Obtener detalle de una citación",
