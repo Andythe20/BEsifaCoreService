@@ -1,5 +1,7 @@
 package com.sifa.core_sifa.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sifa.core_sifa.dto.citacion.CitacionResponse;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -23,6 +26,28 @@ public class CitacionService {
 
     private final ICitacionRepository citacionRepository;
     private final IInfraccionRepository infraccionRepository;
+
+    /**
+     * Listado paginado de citaciones con filtros opcionales.
+     * Soporta filtrado por rango de fecha de citación y búsqueda por patente/RUT/nombre.
+     */
+    @Transactional(readOnly = true)
+    public Page<CitacionResponse> findAll(
+            LocalDate startDate,
+            LocalDate endDate,
+            String search,
+            Pageable pageable) {
+
+        log.info("Listando citaciones con filtros - startDate: {}, endDate: {}, search: {}", startDate, endDate, search);
+
+        LocalDateTime start = startDate != null ? startDate.atStartOfDay() : null;
+        LocalDateTime end = endDate != null ? endDate.atTime(23, 59, 59) : null;
+        String searchQuery = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        Page<Citacion> citaciones = citacionRepository.findByFilters(start, end, searchQuery, pageable);
+
+        return citaciones.map(CitacionResponse::fromEntity);
+    }
 
     @Transactional
     public CitacionResponse crearCitacion(Integer idInfraccion, LocalDateTime fechaCitacion) {
