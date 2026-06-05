@@ -1,6 +1,8 @@
-package com.sifa.core_sifa.service;
+package com.sifa.core_sifa.service.audits;
 
 import com.sifa.core_sifa.dto.audit.AuditLogRequestDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sifa.core_sifa.dto.audit.AuditLogResponseDTO;
@@ -12,12 +14,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class AuditLogService {
+public class AuditLogServiceImpl implements IAuditLogService {
 
     private final IAuditLogRepository auditLogRepository;
 
@@ -31,22 +35,36 @@ public class AuditLogService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLogResponseDTO> findAllAuditLogs() {
-        log.info("Listando todas las auditorias");
-        return auditLogRepository.findAll()
-                .stream()
-                .map(AuditLogResponseDTO::fromEntity)
-                .toList();
+    public Page<AuditLogResponseDTO> findAll(
+            LocalDate startDate,
+            LocalDate endDate,
+            String user,
+            String search,
+            Pageable pageable
+    ) {
+        LocalDateTime start = null;
+        LocalDateTime end = null;
+
+        if (startDate != null) {
+            start = startDate.atStartOfDay();
+        }
+        if (endDate != null) {
+            end = endDate.atTime(23, 59, 59);
+        }
+
+        String searchQuery = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        Page<AuditLog> audits = auditLogRepository.findByFilters(
+                start,
+                end,
+                user,
+                searchQuery,
+                pageable
+        );
+
+        return audits.map(AuditLogResponseDTO::fromEntity);
     }
 
-    @Transactional(readOnly = true)
-    public List<AuditLogResponseDTO> findByEmailUsuario(String emailUsuario) {
-        log.info("Listando todas las auditorias del usuario {}", emailUsuario);
-        return auditLogRepository.findByEmailUsuario(emailUsuario)
-                .stream()
-                .map(AuditLogResponseDTO::fromEntity)
-                .toList();
-    }
 
     @Transactional
     public void registrarLog(AuditLogRequestDTO request) {
