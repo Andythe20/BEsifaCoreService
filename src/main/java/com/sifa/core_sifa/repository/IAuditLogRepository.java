@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 import com.sifa.core_sifa.model.AuditLog;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Repository
 public interface IAuditLogRepository extends JpaRepository<AuditLog, Long> {
