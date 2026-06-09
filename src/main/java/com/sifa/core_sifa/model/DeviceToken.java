@@ -32,6 +32,22 @@ public class DeviceToken {
     @Column(name = "app_version", nullable = false, length = 20)
     private String appVersion;
 
+    @Column(name = "device_id", length = 100)
+    private String deviceId;
+
+    @Column(name = "device_model", length = 100)
+    private String deviceModel;
+
+    @Column(name = "manufacturer", length = 100)
+    private String manufacturer;
+
+    @Column(name = "last_heartbeat_at")
+    private LocalDateTime lastHeartbeatAt;
+
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private String status = "UNKNOWN";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
