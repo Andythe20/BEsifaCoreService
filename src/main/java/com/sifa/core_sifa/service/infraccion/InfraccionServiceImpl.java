@@ -1,7 +1,10 @@
 package com.sifa.core_sifa.service.infraccion;
 
+import com.sifa.core_sifa.dto.audit.AuditLogRequestDTO;
 import com.sifa.core_sifa.dto.infraccion.*;
+import com.sifa.core_sifa.model.AuditAction;
 import com.sifa.core_sifa.service.CitacionService;
+import com.sifa.core_sifa.service.audits.IAuditLogService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +44,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
     private final ITipoInfraccionRepository tipoInfraccionRepository;
     private final IStorageService storageService;
     private final CitacionService citacionService;
+    private final IAuditLogService auditLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -47,7 +52,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
         log.info("Listando todas las infracciones");
 
         return infraccionRepository.findAll(
-                Sort.by(Sort.Direction.DESC, "fecha"))
+                        Sort.by(Sort.Direction.DESC, "fecha"))
                 .stream()
                 .map(InfraccionResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -105,7 +110,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
     @Override
     @Transactional
     public InfraccionResponse crearInfraccion(InfraccionCreateRequest request, List<MultipartFile> fotos,
-            String idFiscalizador) {
+                                              String idFiscalizador) {
         log.info("Iniciando creación de infracción para patente: {}", request.getPatenteVehiculo());
 
         var vehiculo = vehiculoRepository.findById(request.getPatenteVehiculo())
@@ -192,7 +197,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
     @Override
     @Transactional
     public InfraccionResponse procesarInfraccionPorJpl(Integer idInfraccion, InfraccionUpdateRequest request,
-            String idAdministrativoJpl) {
+                                                       String idAdministrativoJpl) {
         log.info("Administrativo JPL {} procesando infracción ID: {}", idAdministrativoJpl, idInfraccion);
 
         Infraccion infraccion = infraccionRepository.findById(idInfraccion)
@@ -219,6 +224,24 @@ public class InfraccionServiceImpl implements IInfraccionService {
 
         log.info("Infracción ID: {} procesada exitosamente con estado: {}", idInfraccion,
                 infraccionActualizada.getEstado());
+
+        // Auditar procesamiento de la infracción por usuario JPL
+        AuditLogRequestDTO auditLog = AuditLogRequestDTO.builder()
+                .emailUsuario(idAdministrativoJpl)
+                .accion(String.valueOf(AuditAction.PROCESAR_INFRACCION))
+                .tablaAfectada("infracciones")
+                .idRegistroAfectado(infraccion.getIdInfraccion().toString())
+                .detalles(Map.of(
+                                "infraccion_afectada", infraccion.getIdInfraccion().toString(),
+                                "estado_anterior", infraccion.getEstado(),
+                                "estado_actual", infraccionActualizada.getEstado(),
+                                "procesado_por", idAdministrativoJpl,
+                                "motivo", (infraccionActualizada.getMotivoRechazo().trim().isEmpty() ? "No aplica" : infraccionActualizada.getMotivoRechazo())
+                        )
+                ).build();
+
+        auditLogService.registrarLog(auditLog);
+
 
         return InfraccionResponse.fromEntity(infraccionActualizada);
     }
@@ -290,7 +313,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
      */
     @Override
     @Transactional
-    public InfraccionResponse actualizarEstadoInfraccion(Integer id, String status, String idUsuario) {
+    public InfraccionResponse actualizarEstadoInfraccion(Integer id, String status, String idUsuario, String motivo) {
         Infraccion infraccion = infraccionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Infracción no encontrada con ID: " + id));
@@ -303,11 +326,37 @@ public class InfraccionServiceImpl implements IInfraccionService {
             default -> status.toUpperCase();
         };
 
-        infraccion.setEstado(dbStatus);
-        if (idUsuario != null) {
-            infraccion.setIdUsuarioJpl(idUsuario);
+        if ("APROBADA".equalsIgnoreCase(status)
+                || "RECHAZADA".equalsIgnoreCase(infraccion.getEstado())) {
+            throw new IllegalStateException(
+                    "La infracción ya fue procesada anteriormente y no puede ser modificada.");
         }
+
+        if ("RECHAZADA".equalsIgnoreCase(status) && status.trim().isEmpty()) {
+            throw new IllegalArgumentException("Debe ingresar un motivo de rechazo válido.");
+        }
+
+        infraccion.setEstado(dbStatus);
+        infraccion.setMotivoRechazo(motivo);
         infraccion.setFechaResolucion(java.time.LocalDateTime.now());
+        infraccion.setIdUsuarioJpl(idUsuario);
+
+        // Auditar procesamiento de la infracción por usuario JPL
+        AuditLogRequestDTO auditLog = AuditLogRequestDTO.builder()
+                .emailUsuario(idUsuario)
+                .accion(String.valueOf(AuditAction.PROCESAR_INFRACCION))
+                .tablaAfectada("infracciones")
+                .idRegistroAfectado(infraccion.getIdInfraccion().toString())
+                .detalles(Map.of(
+                                "infraccion_afectada", infraccion.getIdInfraccion().toString(),
+                                "estado_anterior", infraccion.getEstado(),
+                                "estado_actual", dbStatus,
+                                "procesado_por", idUsuario,
+                                "motivo", (motivo == null ? "No aplica" : motivo)
+                        )
+                ).build();
+
+        auditLogService.registrarLog(auditLog);
 
         return InfraccionResponse.fromEntity(infraccionRepository.save(infraccion));
     }
@@ -378,32 +427,6 @@ public class InfraccionServiceImpl implements IInfraccionService {
             }
         }
 
-        if (request.containsKey("tramitacion")) {
-            var tramMap = (java.util.Map<String, Object>) request.get("tramitacion");
-            if (tramMap != null && tramMap.containsKey("fechaCitacion")) {
-                String fechaStr = (String) tramMap.get("fechaCitacion");
-                if (fechaStr != null && !fechaStr.trim().isEmpty()
-                        && !"No definida".equalsIgnoreCase(fechaStr)) {
-                    try {
-                        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter
-                                .ofPattern("yyyy-MM-dd HH:mm");
-                        java.time.LocalDateTime fCit = java.time.LocalDateTime.parse(fechaStr,
-                                dtf);
-                        if (infraccion.getCitacion() != null) {
-                            infraccion.getCitacion().setFecha(fCit);
-                        } else {
-                            var cit = com.sifa.core_sifa.model.Citacion.builder()
-                                    .fecha(fCit)
-                                    .infraccion(infraccion)
-                                    .build();
-                            infraccion.setCitacion(cit);
-                        }
-                    } catch (Exception e) {
-                        log.warn("Error parseando fechaCitacion: {}", fechaStr);
-                    }
-                }
-            }
-        }
 
         return InfraccionResponse.fromEntity(infraccionRepository.save(infraccion));
     }

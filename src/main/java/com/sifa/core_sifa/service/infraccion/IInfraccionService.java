@@ -12,54 +12,55 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface IInfraccionService {
 
-        List<InfraccionResponse> findAllInfracciones();
+    List<InfraccionResponse> findAllInfracciones();
 
-        InfraccionResponse findById(Integer idInfraccion);
+    InfraccionResponse findById(Integer idInfraccion);
 
-        Page<InfraccionResponse> findByIdFiscalizador(String idFiscalizador, Pageable pageable);
+    Page<InfraccionResponse> findByIdFiscalizador(String idFiscalizador, Pageable pageable);
 
-        List<InfraccionResponse> findByVehiculoPatente(String vehiculoPatente);
+    List<InfraccionResponse> findByVehiculoPatente(String vehiculoPatente);
 
-        InfraccionResponse crearInfraccion(
-                        InfraccionCreateRequest request,
-                        List<MultipartFile> fotos,
-                        String idFiscalizador);
+    InfraccionResponse crearInfraccion(
+            InfraccionCreateRequest request,
+            List<MultipartFile> fotos,
+            String idFiscalizador);
 
-        InfraccionResponse procesarInfraccionPorJpl(
-                        Integer idInfraccion,
-                        InfraccionUpdateRequest request,
-                        String idAdministrativoJpl);
+    InfraccionResponse procesarInfraccionPorJpl(
+            Integer idInfraccion,
+            InfraccionUpdateRequest request,
+            String idAdministrativoJpl);
 
-        List<InfraccionResponse> findByDate(LocalDate date);
+    List<InfraccionResponse> findByDate(LocalDate date);
 
-        Page<InfraccionResponse> findInfracciones(
-                        LocalDate startDate,
-                        LocalDate endDate,
-                        String user,
-                        String status,
-                        String search,
-                        Pageable pageable);
+    Page<InfraccionResponse> findInfracciones(
+            LocalDate startDate,
+            LocalDate endDate,
+            String user,
+            String status,
+            String search,
+            Pageable pageable);
 
-        InfraccionResponse actualizarEstadoInfraccion(
-                        Integer id,
-                        String status,
-                        String idUsuario);
+    InfraccionResponse actualizarEstadoInfraccion(
+            Integer id,
+            String status,
+            String idUsuario,
+            String motivo);
 
-        InfraccionResponse editarInfraccion(
-                        Integer id,
-                        Map<String, Object> request);
+    InfraccionResponse editarInfraccion(
+            Integer id,
+            Map<String, Object> request);
 
-        List<CoordenadaDTO> findCoordenadas(
-                        LocalDate startDate,
-                        LocalDate endDate,
-                        String user);
+    List<CoordenadaDTO> findCoordenadas(
+            LocalDate startDate,
+            LocalDate endDate,
+            String user);
 
-        ReporteResumenDTO obtenerResumenReporte(
-                        LocalDate startDate,
-                        LocalDate endDate,
-                        String user);
+    ReporteResumenDTO obtenerResumenReporte(
+            LocalDate startDate,
+            LocalDate endDate,
+            String user);
 
-        List<ProductividadFiscalizadorDTO> obtenerProductividad(LocalDate startDate, LocalDate endDate);
+    List<ProductividadFiscalizadorDTO> obtenerProductividad(LocalDate startDate, LocalDate endDate);
 
     DashboardEstadisticasDTO obtenerEstadisticasDashboard(LocalDate startDate, LocalDate endDate, String user, String search);
 }
