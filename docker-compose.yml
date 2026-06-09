@@ -18,7 +18,7 @@ services:
     networks:
       - sifa-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password_segura"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password_segura" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,13 +43,15 @@ services:
       # App
       SERVER_PORT: 8080
 
+      FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS}
+
     depends_on:
       core_mysql:
         condition: service_healthy
     networks:
       - sifa-network
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/v3/api-docs"  ]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/v3/api-docs" ]
       interval: 30s
       timeout: 10s
       retries: 3
