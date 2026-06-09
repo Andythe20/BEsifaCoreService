@@ -30,9 +30,6 @@ public class FirebaseConfig {
                 return;
             }
 
-            Resource[] resources = new PathMatchingResourcePatternResolver()
-                    .getResources("classpath:firebase/*.json");
-
             // Validar que la variable de entorno no esté vacía
             if (firebaseCredentialsJson == null || firebaseCredentialsJson.trim().isEmpty()) {
                 throw new RuntimeException("La variable de entorno FIREBASE_CREDENTIALS está vacía o no definida.");
