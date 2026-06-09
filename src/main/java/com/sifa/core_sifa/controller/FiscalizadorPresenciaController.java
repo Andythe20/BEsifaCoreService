@@ -3,6 +3,7 @@ package com.sifa.core_sifa.controller;
 import com.sifa.core_sifa.dto.fiscalizador.FiscalizadorHeartbeatRequest;
 import com.sifa.core_sifa.model.FiscalizadorPresencia;
 import com.sifa.core_sifa.service.FiscalizadorPresenciaService;
+import com.sifa.core_sifa.service.device.IDeviceTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class FiscalizadorPresenciaController {
 
     private final FiscalizadorPresenciaService presenciaService;
+    private final IDeviceTokenService deviceTokenService;
 
     /**
      * Endpoint que llamará la App Móvil periódicamente.
@@ -43,6 +45,7 @@ public class FiscalizadorPresenciaController {
             @Parameter(hidden = true) @RequestHeader("X-Auth-User") String emailInspector) {
 
         presenciaService.registrarLatido(emailInspector, request);
+        deviceTokenService.processHeartbeat(emailInspector, request);
         return ResponseEntity.ok().build();
     }
 
