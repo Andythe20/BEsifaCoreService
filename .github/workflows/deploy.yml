@@ -57,6 +57,8 @@ jobs:
 
           AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
           AWS_S3_REGION=${AWS_S3_REGION}
+          
+          FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS}
           EOF
 
       - name: Create SSH key
