@@ -68,16 +68,33 @@ public class AuditLogServiceImpl implements IAuditLogService {
 
     @Transactional
     public void registrarLog(AuditLogRequestDTO request) {
-        AuditLog logEntity = AuditLog.builder()
-                .emailUsuario(request.getEmailUsuario())
-                .accion(request.getAccion())
-                .tablaAfectada(request.getTablaAfectada())
-                .idRegistroAfectado(request.getIdRegistroAfectado())
-                .detalles(request.getDetalles())
-                .build();
+        try {
+            log.debug("[AUDITORIA] Iniciando envío asíncrono -> Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
+            AuditLog logEntity = AuditLog.builder()
+                    .emailUsuario(request.getEmailUsuario())
+                    .accion(request.getAccion())
+                    .tablaAfectada(request.getTablaAfectada())
+                    .idRegistroAfectado(request.getIdRegistroAfectado())
+                    .detalles(request.getDetalles())
+                    .build();
 
-        auditLogRepository.save(logEntity);
-        log.info("Auditoría guardada exitosamente | Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
+            auditLogRepository.save(logEntity);
+            log.info("Auditoría guardada exitosamente | Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
+        } catch (IllegalArgumentException e) {
+            log.error("[AUDITORIA-ERROR] Fallo de validación de URI o argumentos.");
+            log.error("Mensaje: {}", e.getMessage());
+            log.error("Stacktrace:", e);
+        } catch (Exception e) {
+            // Atrapamos el error para que NO afecte al usuario.
+            log.error("[AUDITORIA-ERROR] Error silencioso general al comunicarse con el Core.");
+            log.error("Clase del error: {}", e.getClass().getName());
+            log.error("Mensaje exacto: {}", e.getMessage());
+            if (e.getCause() != null) {
+                log.error("Causa raíz (Cause): {}", e.getCause().toString());
+            }
+            // Imprime el stacktrace completo para ver exactamente en qué clase de Feign falló
+            log.error("Stacktrace completo: ", e);
+        }
     }
 
 
