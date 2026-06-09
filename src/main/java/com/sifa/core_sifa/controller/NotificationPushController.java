@@ -2,9 +2,13 @@ package com.sifa.core_sifa.controller;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.sifa.core_sifa.dto.device.DeviceTokenResponse;
+import com.sifa.core_sifa.dto.push.BulkPushRequest;
 import com.sifa.core_sifa.dto.push.OutdatedPushRequest;
+import com.sifa.core_sifa.dto.push.SelectPushRequest;
 import com.sifa.core_sifa.dto.push.SinglePushRequest;
 import com.sifa.core_sifa.service.device.IDeviceTokenService;
+import com.sifa.core_sifa.service.notification.INotificationLogService;
 import com.sifa.core_sifa.service.push.IPushService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +31,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -36,6 +42,7 @@ public class NotificationPushController {
 
     private final IPushService pushService;
     private final IDeviceTokenService deviceTokenService;
+    private final INotificationLogService notificationLogService;
 
     @Operation(summary = "Enviar notificación push de prueba",
             description = "Envía una notificación push a un dispositivo específico usando su token FCM")
@@ -45,10 +52,13 @@ public class NotificationPushController {
     @PreAuthorize("hasAnyAuthority('USER_APP', 'USER_SUPERVISOR', 'USER_ADMIN')")
     @PostMapping
     public ResponseEntity<Map<String, String>> sendPush(
-            @Valid @RequestBody SinglePushRequest request) {
+            @Valid @RequestBody SinglePushRequest request,
+            @RequestHeader("X-Auth-User") String user) {
 
         try {
             String messageId = pushService.send(request.getToken(), request.getTitle(), request.getBody());
+            notificationLogService.log("SINGLE", request.getTitle(), request.getBody(),
+                    null, null, 1, user);
             return ResponseEntity.ok(Map.of("messageId", messageId));
         } catch (FirebaseMessagingException e) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -100,6 +110,91 @@ public class NotificationPushController {
         }
     }
 
+    @Operation(summary = "Notificar a todos los dispositivos",
+            description = "Envía una notificación push a todos los dispositivos registrados")
+    @ApiResponse(responseCode = "200", description = "Notificaciones enviadas")
+    @ApiResponse(responseCode = "400", description = "Error", content = @Content())
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR')")
+    @PostMapping("/all")
+    public ResponseEntity<Map<String, Object>> notifyAll(
+            @Valid @RequestBody BulkPushRequest request,
+            @RequestHeader("X-Auth-User") String user) {
+        try {
+            int sent = deviceTokenService.notifyAllDevices(
+                    request.getTitle(),
+                    request.getBody()
+            );
+            notificationLogService.log("ALL", request.getTitle(), request.getBody(),
+                    null, null, sent, user);
+            return ResponseEntity.ok(Map.of("sent", sent));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
+    @Operation(summary = "Notificar por plataforma",
+            description = "Envía una notificación push a todos los dispositivos de una plataforma específica")
+    @ApiResponse(responseCode = "200", description = "Notificaciones enviadas")
+    @ApiResponse(responseCode = "400", description = "Error", content = @Content())
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR')")
+    @PostMapping("/platform")
+    public ResponseEntity<Map<String, Object>> notifyByPlatform(
+            @Valid @RequestBody BulkPushRequest request,
+            @RequestHeader("X-Auth-User") String user) {
+        try {
+            int sent = deviceTokenService.notifyByPlatform(
+                    request.getTargetPlatform(),
+                    request.getTitle(),
+                    request.getBody()
+            );
+            notificationLogService.log("PLATFORM", request.getTitle(), request.getBody(),
+                    null, request.getTargetPlatform(), sent, user);
+            return ResponseEntity.ok(Map.of(
+                    "sent", sent,
+                    "platform", request.getTargetPlatform()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
+    @Operation(summary = "Listar dispositivos registrados (DTO seguro)",
+            description = "Retorna todos los dispositivos registrados sin exponer el token FCM")
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR')")
+    @GetMapping("/devices")
+    public ResponseEntity<List<DeviceTokenResponse>> listDevices() {
+        return ResponseEntity.ok(deviceTokenService.getAllDeviceResponses());
+    }
+
+    @Operation(summary = "Notificar a dispositivos seleccionados",
+            description = "Envía una notificación push a dispositivos específicos por ID")
+    @ApiResponse(responseCode = "200", description = "Notificaciones enviadas")
+    @ApiResponse(responseCode = "400", description = "Error", content = @Content())
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR')")
+    @PostMapping("/select")
+    public ResponseEntity<Map<String, Object>> notifySelect(
+            @Valid @RequestBody SelectPushRequest request,
+            @RequestHeader("X-Auth-User") String user) {
+        try {
+            int sent = deviceTokenService.notifyDevicesByIds(
+                    request.getDeviceIds(),
+                    request.getTitle(),
+                    request.getBody()
+            );
+            notificationLogService.log("SELECT", request.getTitle(), request.getBody(),
+                    null, null, sent, user);
+            return ResponseEntity.ok(Map.of("sent", sent));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
     @Operation(summary = "Notificar dispositivos desactualizados",
             description = "Envía una notificación push a todos los dispositivos cuya versión no coincida con la versión actual")
     @ApiResponse(responseCode = "200", description = "Notificaciones enviadas")
@@ -107,13 +202,16 @@ public class NotificationPushController {
     @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_SUPERVISOR')")
     @PostMapping("/outdated")
     public ResponseEntity<Map<String, Object>> notifyOutdated(
-            @Valid @RequestBody OutdatedPushRequest request) {
+            @Valid @RequestBody OutdatedPushRequest request,
+            @RequestHeader("X-Auth-User") String user) {
         try {
             int sent = deviceTokenService.notifyOutdatedDevices(
                     request.getCurrentVersion(),
                     request.getTitle(),
                     request.getBody()
             );
+            notificationLogService.log("OUTDATED", request.getTitle(), request.getBody(),
+                    request.getCurrentVersion(), null, sent, user);
             return ResponseEntity.ok(Map.of(
                     "sent", sent,
                     "currentVersion", request.getCurrentVersion()
