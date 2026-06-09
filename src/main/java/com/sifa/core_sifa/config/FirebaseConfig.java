@@ -5,15 +5,22 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @Slf4j
 public class FirebaseConfig {
+
+    // Inyectamos el JSON directamente desde las variables de entorno
+    @Value("${FIREBASE_CREDENTIALS}")
+    private String firebaseCredentialsJson;
 
     @PostConstruct
     public void init() {
@@ -26,14 +33,14 @@ public class FirebaseConfig {
             Resource[] resources = new PathMatchingResourcePatternResolver()
                     .getResources("classpath:firebase/*.json");
 
-            if (resources.length == 0) {
-                throw new RuntimeException("No Firebase credentials file found in classpath:firebase/");
+            // Validar que la variable de entorno no esté vacía
+            if (firebaseCredentialsJson == null || firebaseCredentialsJson.trim().isEmpty()) {
+                throw new RuntimeException("La variable de entorno FIREBASE_CREDENTIALS está vacía o no definida.");
             }
+            log.info("Loading Firebase credentials from: variable (String)");
 
-            Resource credentialsFile = resources[0];
-            log.info("Loading Firebase credentials from: {}", credentialsFile.getFilename());
-
-            try (InputStream serviceAccount = credentialsFile.getInputStream()) {
+            // Convertir el String JSON a un InputStream en memoria
+            try (InputStream serviceAccount = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8))) {
                 // 1. Leer las credenciales básicas
                 GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
 
