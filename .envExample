@@ -5,7 +5,7 @@
 # ============================================
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=nombre_de_tu_base_de_datos
+DB_NAME_CORE=nombre_de_tu_base_de_datos
 DB_USER=usuario_de_tu_base_de_datos
 DB_PASSWORD=password_de_tu_base_de_datos
 
