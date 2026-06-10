@@ -22,3 +22,8 @@ AWS_S3_REGION=us-east-1
 # APP
 # ============================================
 SERVER_PORT=8083
+
+# ============================================
+# FIREBASE CREDENTIALS
+# ============================================
+FIREBASE_CREDENTIALS='JSON_CREDENCIAL'
