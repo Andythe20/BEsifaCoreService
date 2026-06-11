@@ -31,28 +31,38 @@ public class DeviceTokenServiceImpl implements IDeviceTokenService {
         log.info("Registrando dispositivo para usuario: {}, platform: {}, appVersion: {}",
                 emailUsuario, request.getPlatform(), appVersion);
 
-        DeviceToken deviceToken = deviceTokenRepository.findByToken(request.getToken())
-                .map(existing -> {
-                    existing.setEmailUsuario(emailUsuario);
-                    existing.setPlatform(request.getPlatform());
-                    existing.setAppVersion(appVersion);
-                    if (request.getDeviceId() != null) existing.setDeviceId(request.getDeviceId());
-                    if (request.getDeviceModel() != null) existing.setDeviceModel(request.getDeviceModel());
-                    if (request.getManufacturer() != null) existing.setManufacturer(request.getManufacturer());
-                    return existing;
-                })
-                .orElseGet(() -> DeviceToken.builder()
-                        .emailUsuario(emailUsuario)
-                        .token(request.getToken())
-                        .platform(request.getPlatform())
-                        .appVersion(appVersion)
-                        .deviceId(request.getDeviceId())
-                        .deviceModel(request.getDeviceModel())
-                        .manufacturer(request.getManufacturer())
-                        .build());
+        Optional<DeviceToken> existing = deviceTokenRepository.findByToken(request.getToken());
 
-        deviceTokenRepository.save(deviceToken);
-        log.info("Dispositivo registrado/actualizado exitosamente para: {}", emailUsuario);
+        if (existing.isPresent()) {
+            DeviceToken deviceToken = existing.get();
+            deviceToken.setEmailUsuario(emailUsuario);
+            deviceToken.setPlatform(request.getPlatform());
+            deviceToken.setAppVersion(appVersion);
+            if (request.getDeviceId() != null) deviceToken.setDeviceId(request.getDeviceId());
+            if (request.getDeviceModel() != null) deviceToken.setDeviceModel(request.getDeviceModel());
+            if (request.getManufacturer() != null) deviceToken.setManufacturer(request.getManufacturer());
+            deviceTokenRepository.save(deviceToken);
+            log.info("Token existente actualizado para: {}", emailUsuario);
+            return;
+        }
+
+        List<DeviceToken> oldTokens = deviceTokenRepository.findByEmailUsuario(emailUsuario);
+        if (!oldTokens.isEmpty()) {
+            deviceTokenRepository.deleteAll(oldTokens);
+            log.info("Eliminados {} token(s) antiguo(s) para: {}", oldTokens.size(), emailUsuario);
+        }
+
+        DeviceToken nuevo = DeviceToken.builder()
+                .emailUsuario(emailUsuario)
+                .token(request.getToken())
+                .platform(request.getPlatform())
+                .appVersion(appVersion)
+                .deviceId(request.getDeviceId())
+                .deviceModel(request.getDeviceModel())
+                .manufacturer(request.getManufacturer())
+                .build();
+        deviceTokenRepository.save(nuevo);
+        log.info("Nuevo dispositivo registrado para: {}", emailUsuario);
     }
 
     @Override
