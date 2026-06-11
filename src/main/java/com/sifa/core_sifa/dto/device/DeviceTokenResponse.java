@@ -18,6 +18,7 @@ public class DeviceTokenResponse {
     private String appVersion;
     private String deviceModel;
     private String manufacturer;
+    private String deviceId;
     private LocalDateTime lastHeartbeatAt;
     private String status;
     private LocalDateTime createdAt;
@@ -31,6 +32,7 @@ public class DeviceTokenResponse {
                 .appVersion(entity.getAppVersion())
                 .deviceModel(entity.getDeviceModel())
                 .manufacturer(entity.getManufacturer())
+                .deviceId(entity.getDeviceId())
                 .lastHeartbeatAt(entity.getLastHeartbeatAt())
                 .status(entity.getStatus())
                 .createdAt(entity.getCreatedAt())

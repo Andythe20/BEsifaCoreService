@@ -81,26 +81,50 @@ public class DeviceTokenServiceImpl implements IDeviceTokenService {
             token.setDeviceModel(request.getModelo());
             token.setManufacturer(request.getMarca());
             if (token.getDeviceId() == null) token.setDeviceId(request.getDeviceId());
+            if (request.getFcmToken() != null) token.setToken(request.getFcmToken());
             deviceTokenRepository.save(token);
             log.debug("Device token {} updated from heartbeat (user: {})", token.getId(), emailUsuario);
-        } else {
-            List<DeviceToken> byEmail = deviceTokenRepository.findByEmailUsuario(emailUsuario);
-            DeviceToken match = byEmail.stream()
-                    .filter(t -> t.getDeviceId() == null)
-                    .findFirst()
-                    .orElseGet(() -> byEmail.isEmpty() ? null : byEmail.get(0));
+            return;
+        }
 
-            if (match != null) {
-                match.setDeviceId(request.getDeviceId());
-                match.setDeviceModel(request.getModelo());
-                match.setManufacturer(request.getMarca());
-                match.setLastHeartbeatAt(LocalDateTime.now());
-                match.setStatus("ACTIVE");
-                deviceTokenRepository.save(match);
-                log.info("Linked deviceId {} to token {} (user: {})", request.getDeviceId(), match.getId(), emailUsuario);
-            } else {
-                log.debug("No DeviceToken found for deviceId {} or user {}", request.getDeviceId(), emailUsuario);
-            }
+        // Buscar por email
+        List<DeviceToken> byEmail = deviceTokenRepository.findByEmailUsuario(emailUsuario);
+        DeviceToken match = byEmail.stream()
+                .filter(t -> t.getDeviceId() == null)
+                .findFirst()
+                .orElseGet(() -> byEmail.isEmpty() ? null : byEmail.get(0));
+
+        if (match != null) {
+            match.setDeviceId(request.getDeviceId());
+            match.setDeviceModel(request.getModelo());
+            match.setManufacturer(request.getMarca());
+            match.setLastHeartbeatAt(LocalDateTime.now());
+            match.setStatus("ACTIVE");
+            if (request.getFcmToken() != null) match.setToken(request.getFcmToken());
+            deviceTokenRepository.save(match);
+            log.info("Linked deviceId {} to token {} (user: {})", request.getDeviceId(), match.getId(), emailUsuario);
+            return;
+        }
+
+        // No existe ningún DeviceToken para este dispositivo o email.
+        // Si el heartbeat trae un fcmToken, auto-registramos el dispositivo.
+        if (request.getFcmToken() != null) {
+            DeviceToken nuevo = DeviceToken.builder()
+                    .emailUsuario(emailUsuario)
+                    .token(request.getFcmToken())
+                    .platform("ANDROID")
+                    .appVersion("unknown")
+                    .deviceId(request.getDeviceId())
+                    .deviceModel(request.getModelo())
+                    .manufacturer(request.getMarca())
+                    .status("ACTIVE")
+                    .lastHeartbeatAt(LocalDateTime.now())
+                    .build();
+            deviceTokenRepository.save(nuevo);
+            log.warn("Auto-registrado nuevo DeviceToken {} para usuario {} desde heartbeat (fcmToken provisto)", nuevo.getId(), emailUsuario);
+        } else {
+            log.warn("Heartbeat recibido para usuario {} (deviceId {}) pero NO existe DeviceToken ni se puede crear (falta fcmToken). " +
+                     "El dispositivo NO recibirá notificaciones push hasta que la app móvil registre su FCM token.", emailUsuario, request.getDeviceId());
         }
     }
 

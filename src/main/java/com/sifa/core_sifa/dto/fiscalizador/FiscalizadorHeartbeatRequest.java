@@ -25,4 +25,7 @@ public class FiscalizadorHeartbeatRequest {
     @Schema(description = "Modelo del dispositivo móvil")
     @NotNull(message = "El modelo del dispositivo es obligatorio")
     private String modelo;
+
+    @Schema(description = "Token FCM para notificaciones push (opcional, se envía una vez al registrar el dispositivo)")
+    private String fcmToken;
 }
