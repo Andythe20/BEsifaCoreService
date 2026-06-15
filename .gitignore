@@ -33,5 +33,8 @@ build/
 ### VS Code ###
 .vscode/
 
+### Logs ###
+logs/
+
 ### Firebase ###
 firebase/*.json
