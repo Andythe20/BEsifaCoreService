@@ -236,7 +236,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
                                 "estado_anterior", infraccion.getEstado(),
                                 "estado_actual", infraccionActualizada.getEstado(),
                                 "procesado_por", idAdministrativoJpl,
-                                "motivo", (infraccionActualizada.getMotivoRechazo().trim().isEmpty() ? "No aplica" : infraccionActualizada.getMotivoRechazo())
+                                "motivo", (infraccionActualizada.getMotivoRechazo() == null || infraccionActualizada.getMotivoRechazo().trim().isEmpty() ? "No aplica" : infraccionActualizada.getMotivoRechazo())
                         )
                 ).build();
 
@@ -352,7 +352,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
                                 "estado_anterior", infraccion.getEstado(),
                                 "estado_actual", dbStatus,
                                 "procesado_por", idUsuario,
-                                "motivo", (motivo == null ? "No aplica" : motivo)
+                                "motivo", (motivo == null || motivo.trim().isEmpty() ? "No aplica" : motivo)
                         )
                 ).build();
 
