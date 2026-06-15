@@ -15,15 +15,16 @@ import java.time.LocalDateTime;
 public interface IAuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     @Query("""
-            SELECT a
-            FROM AuditLog a
-            WHERE (:start IS NULL OR a.fechaHora >= :start)
-            AND (:end IS NULL OR a.fechaHora <= :end)
-            AND (:user IS NULL OR a.emailUsuario = :user)
-            AND (:search IS NULL OR 
-                 LOWER(a.accion) LIKE LOWER(CONCAT('%', :search, '%'))
-            )
-            """)
+             SELECT a
+             FROM AuditLog a
+             WHERE (:start IS NULL OR a.fechaHora >= :start)
+             AND (:end IS NULL OR a.fechaHora <= :end)
+             AND (:user IS NULL OR a.emailUsuario = :user)
+             AND (:search IS NULL OR\s
+                  LOWER(a.emailUsuario) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                  LOWER(a.accion) LIKE LOWER(CONCAT('%', :search, '%'))
+             )
+            \s""")
     Page<AuditLog> findByFilters(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
