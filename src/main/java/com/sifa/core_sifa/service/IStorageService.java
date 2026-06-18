@@ -10,4 +10,7 @@ public interface IStorageService {
     List<String> uploadFiles(List<MultipartFile> files, String infraccionId);
 
     void deleteFile(String fileUrl);
+
+    String uploadApk(MultipartFile file);
+
 }

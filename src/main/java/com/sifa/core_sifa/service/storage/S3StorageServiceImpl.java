@@ -35,6 +35,7 @@ public class S3StorageServiceImpl implements IStorageService {
     private String region;
 
     private static final String FOLDER_PREFIX = "infracciones/";
+    private static final String APK_FOLDER_PREFIX = "app/";
 
     /**
      * Sube un archivo al bucket S3.
@@ -144,6 +145,40 @@ public class S3StorageServiceImpl implements IStorageService {
         s3Client.deleteObject(deleteRequest);
 
         log.info("Archivo eliminado: {}", key);
+    }
+
+    @Override
+    public String uploadApk(MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("El archivo APK no puede estar vacío");
+        }
+
+        String key = APK_FOLDER_PREFIX + "sifa_go.apk";
+
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType("application/vnd.android.package-archive")
+                    .build();
+
+            s3Client.putObject(
+                    putObjectRequest,
+                    RequestBody.fromBytes(file.getBytes()));
+
+            String url = buildFileUrl(key);
+
+            log.info("APK subido correctamente: {}", url);
+
+            return url;
+
+        } catch (IOException e) {
+
+            log.error("Error subiendo APK a S3", e);
+
+            throw new RuntimeException("No se pudo subir el APK", e);
+        }
     }
 
     /**

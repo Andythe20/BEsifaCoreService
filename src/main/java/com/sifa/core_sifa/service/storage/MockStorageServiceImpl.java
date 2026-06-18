@@ -53,4 +53,14 @@ public class MockStorageServiceImpl implements IStorageService {
 
         log.info("MOCK STORAGE -> Archivo eliminado: {}", fileUrl);
     }
+
+    @Override
+    public String uploadApk(MultipartFile file) {
+
+        String mockUrl = "https://mock.sifa.cl/app/sifa_go.apk";
+
+        log.info("MOCK STORAGE -> APK simulado: {}", mockUrl);
+
+        return mockUrl;
+    }
 }
