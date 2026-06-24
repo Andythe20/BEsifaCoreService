@@ -28,6 +28,8 @@ import org.springframework.data.domain.Pageable;
 import com.sifa.core_sifa.service.infraccion.IInfraccionService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +71,36 @@ public class InfraccionController {
                 pageable);
 
         return ResponseEntity.ok(infracciones);
+    }
+
+    @Operation(summary = "Exportar infracciones a CSV", description = "Genera un archivo CSV con todas las infracciones filtradas. Utiliza los mismos filtros que el listado paginado.")
+    @ApiResponse(responseCode = "200", description = "Archivo CSV generado exitosamente", content = @Content(mediaType = "text/csv"))
+    @ApiResponse(responseCode = "400", description = "Parámetros de solicitud inválidos", content = @Content())
+    @ApiResponse(responseCode = "401", description = "No autorizado", content = @Content())
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN', 'USER_JPL', 'USER_SUPERVISOR')")
+    @GetMapping(value = "/export/csv", produces = "text/csv")
+    public ResponseEntity<byte[]> exportCsv(
+            @Parameter(description = "Fecha de inicio (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Fecha de fin (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @Parameter(description = "Filtro por ID Fiscalizador (Email)") @RequestParam(required = false) String user,
+            @Parameter(description = "Filtro por estado de la infracción") @RequestParam(required = false) String status,
+            @Parameter(description = "Filtro de búsqueda por texto (patente, tipo, ID)") @RequestParam(required = false) String search) {
+
+        log.info("Exportando infracciones a CSV");
+
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("startDate no puede ser mayor que endDate");
+        }
+
+        byte[] csv = infraccionService.exportCsv(startDate, endDate, user, status, search);
+
+        String filename = "infracciones_export_"
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                + ".csv";
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=" + filename)
+                .body(csv);
     }
 
     @Operation(summary = "Obtener infracción por ID", description = "Busca una infracción específica utilizando su identificador único.")

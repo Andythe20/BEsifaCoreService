@@ -63,4 +63,6 @@ public interface IInfraccionService {
     List<ProductividadFiscalizadorDTO> obtenerProductividad(LocalDate startDate, LocalDate endDate);
 
     DashboardEstadisticasDTO obtenerEstadisticasDashboard(LocalDate startDate, LocalDate endDate, String user, String search);
+
+    byte[] exportCsv(LocalDate startDate, LocalDate endDate, String user, String status, String search);
 }

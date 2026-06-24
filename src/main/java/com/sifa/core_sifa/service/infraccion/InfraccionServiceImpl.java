@@ -23,12 +23,18 @@ import com.sifa.core_sifa.repository.ITipoInfraccionRepository;
 import com.sifa.core_sifa.repository.IVehiculoRepository;
 import com.sifa.core_sifa.service.IStorageService;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.opencsv.CSVWriterBuilder;
+import com.opencsv.ICSVWriter;
 
 /**
  * Servicio encargado de gestionar toda la lógica de negocio relacionada con las
@@ -591,5 +597,111 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 .fechaInicio(startDate)
                 .fechaFin(endDate)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportCsv(LocalDate startDate, LocalDate endDate, String user, String status, String search) {
+        log.info("Exportando infracciones a CSV con filtros: startDate={}, endDate={}, user={}, status={}, search={}",
+                startDate, endDate, user, status, search);
+
+        LocalDateTime start = null;
+        LocalDateTime end = null;
+
+        if (startDate != null) {
+            start = startDate.atStartOfDay();
+        }
+        if (endDate != null) {
+            end = endDate.atTime(23, 59, 59);
+        }
+
+        String dbStatus = null;
+        if (status != null && !status.isEmpty() && !status.equalsIgnoreCase("all")) {
+            dbStatus = switch (status.toLowerCase()) {
+                case "pending" -> "EN PROCESO";
+                case "accepted" -> "APROBADA";
+                case "rejected" -> "RECHAZADA";
+                case "exported" -> "EXPORTADA";
+                default -> null;
+            };
+        }
+
+        String searchQuery = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        List<Infraccion> infracciones = infraccionRepository.findByFilters(
+                start, end, user, dbStatus, searchQuery, Pageable.unpaged()).getContent();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        OutputStreamWriter osw = new OutputStreamWriter(baos);
+        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+        try (ICSVWriter writer = new CSVWriterBuilder(osw)
+                .withSeparator(';')
+                .build()) {
+
+            String[] header = {
+                    "ID", "Patente", "Marca", "Modelo", "Color", "Anio",
+                    "Propietario", "RUT Propietario", "Tipo Infraccion", "Disposicion",
+                    "Fecha Emision", "Lugar", "Latitud", "Longitud",
+                    "Estado", "Motivo Rechazo", "Fecha Resolucion",
+                    "Fiscalizador", "JPL", "Observaciones",
+                    "Fecha Citacion", "Fotos"
+            };
+            writer.writeNext(header);
+
+            for (Infraccion i : infracciones) {
+                String patente = i.getVehiculo() != null ? i.getVehiculo().getPatente() : "";
+                String marca = i.getVehiculo() != null ? i.getVehiculo().getMarca() : "";
+                String modelo = i.getVehiculo() != null ? i.getVehiculo().getModelo() : "";
+                String color = i.getVehiculo() != null ? i.getVehiculo().getColor() : "";
+                String anio = i.getVehiculo() != null && i.getVehiculo().getAnioFabricacion() != null
+                        ? String.valueOf(i.getVehiculo().getAnioFabricacion()) : "";
+                String propietario = "";
+                String rutProp = "";
+                if (i.getVehiculo() != null && i.getVehiculo().getPropietarioVehiculo() != null) {
+                    var p = i.getVehiculo().getPropietarioVehiculo();
+                    propietario = (p.getNombres() != null ? p.getNombres() : "") + " "
+                            + (p.getApellidos() != null ? p.getApellidos() : "");
+                    rutProp = p.getRut() != null ? p.getRut() : "";
+                }
+                String tipoInf = i.getTipoInfraccion() != null ? i.getTipoInfraccion().getNombre() : "";
+                String disp = i.getTipoInfraccion() != null ? i.getTipoInfraccion().getDisposicionInfringida() : "";
+                String fecha = i.getFecha() != null ? i.getFecha().format(dateFmt) : "";
+                String lugar = i.getLugar() != null ? i.getLugar() : "";
+                String lat = i.getLatitud() != null ? String.valueOf(i.getLatitud()) : "";
+                String lng = i.getLongitud() != null ? String.valueOf(i.getLongitud()) : "";
+                String estado = i.getEstado() != null ? i.getEstado() : "";
+                String motivo = i.getMotivoRechazo() != null ? i.getMotivoRechazo() : "";
+                String fechaRes = i.getFechaResolucion() != null ? i.getFechaResolucion().format(dateFmt) : "";
+                String fiscalizador = i.getIdFiscalizador() != null ? i.getIdFiscalizador() : "";
+                String jpl = i.getIdUsuarioJpl() != null ? i.getIdUsuarioJpl() : "";
+                String obs = i.getObservaciones() != null ? i.getObservaciones() : "";
+                String fechaCit = i.getCitacion() != null && i.getCitacion().getFecha() != null
+                        ? i.getCitacion().getFecha().format(dateFmt) : "";
+                String fotos = "";
+                if (i.getEvidenciasFotograficas() != null) {
+                    fotos = i.getEvidenciasFotograficas().stream()
+                            .map(ef -> ef.getUrl() != null ? ef.getUrl() : "")
+                            .collect(Collectors.joining(" | "));
+                }
+
+                writer.writeNext(new String[]{
+                        String.valueOf(i.getIdInfraccion()), patente, marca, modelo, color, anio,
+                        propietario, rutProp, tipoInf, disp,
+                        fecha, lugar, lat, lng,
+                        estado, motivo, fechaRes,
+                        fiscalizador, jpl, obs,
+                        fechaCit, fotos
+                });
+            }
+
+            writer.flush();
+        } catch (Exception e) {
+            log.error("Error generando CSV de infracciones", e);
+            throw new RuntimeException("Error al generar el archivo CSV", e);
+        }
+
+        log.info("CSV generado exitosamente con {} registros ({} bytes)", infracciones.size(), baos.size());
+        return baos.toByteArray();
     }
 }

@@ -22,8 +22,10 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(InfraccionController.class)
@@ -153,6 +155,29 @@ class InfraccionControllerTest extends ControllerTestBase {
         mockMvc.perform(get("/core/api/v1/infracciones/reporte/productividad")
                         .headers(authHeaders("USER_SUPERVISOR")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void exportCsv_returnsCsvFile() throws Exception {
+        byte[] mockCsv = "ID;Patente\n1;ABCD12\n".getBytes();
+        given(infraccionService.exportCsv(any(), any(), any(), any(), any()))
+                .willReturn(mockCsv);
+
+        mockMvc.perform(get("/core/api/v1/infracciones/export/csv")
+                        .headers(authHeaders("USER_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "text/csv"))
+                .andExpect(header().string("Content-Disposition", startsWith("attachment; filename=infracciones_export_")))
+                .andExpect(content().bytes(mockCsv));
+    }
+
+    @Test
+    void exportCsv_withInvalidDateRange_returnsBadRequest() throws Exception {
+        mockMvc.perform(get("/core/api/v1/infracciones/export/csv")
+                        .param("startDate", "2024-01-10")
+                        .param("endDate", "2024-01-01")
+                        .headers(authHeaders("USER_ADMIN")))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
