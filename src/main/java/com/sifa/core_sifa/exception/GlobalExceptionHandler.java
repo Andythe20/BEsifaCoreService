@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.sifa.core_sifa.dto.ErrorResponse;
+import com.sifa.core_sifa.exception.RestoreException;
+import com.sifa.core_sifa.exception.RestoreValidationException;
 
 import java.time.LocalDateTime;
 
@@ -54,6 +56,34 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    // Atrapa errores de validación de restore (recuperable, no se modifica producción)
+    @ExceptionHandler(RestoreValidationException.class)
+    public ResponseEntity<ErrorResponse> handleRestoreValidationException(RestoreValidationException ex, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.PRECONDITION_FAILED.value())
+                .error("Restore Validation Error")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(error);
+    }
+
+    // Atrapa errores generales de restore
+    @ExceptionHandler(RestoreException.class)
+    public ResponseEntity<ErrorResponse> handleRestoreException(RestoreException ex, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("Restore Error")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
     // Atrapa los errores de las validaciones @Valid en los Controllers (@NotNull, @NotBlank)
