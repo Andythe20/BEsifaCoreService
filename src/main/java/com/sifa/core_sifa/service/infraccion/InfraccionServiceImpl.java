@@ -221,6 +221,8 @@ public class InfraccionServiceImpl implements IInfraccionService {
             throw new IllegalArgumentException("Debe ingresar un motivo de rechazo válido.");
         }
 
+        String statusBefore = infraccion.getEstado();
+
         infraccion.setEstado(request.getEstado().toUpperCase());
         infraccion.setMotivoRechazo(request.getMotivoRechazo());
         infraccion.setFechaResolucion(java.time.LocalDateTime.now());
@@ -239,7 +241,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 .idRegistroAfectado(infraccion.getIdInfraccion().toString())
                 .detalles(Map.of(
                                 "infraccion_afectada", infraccion.getIdInfraccion().toString(),
-                                "estado_anterior", infraccion.getEstado(),
+                                "estado_anterior", statusBefore,
                                 "estado_actual", infraccionActualizada.getEstado(),
                                 "procesado_por", idAdministrativoJpl,
                                 "motivo", (infraccionActualizada.getMotivoRechazo() == null || infraccionActualizada.getMotivoRechazo().trim().isEmpty() ? "No aplica" : infraccionActualizada.getMotivoRechazo())
@@ -342,6 +344,8 @@ public class InfraccionServiceImpl implements IInfraccionService {
             throw new IllegalArgumentException("Debe ingresar un motivo de rechazo válido.");
         }
 
+        String statusBefore = infraccion.getEstado();
+
         infraccion.setEstado(dbStatus);
         infraccion.setMotivoRechazo(motivo);
         infraccion.setFechaResolucion(java.time.LocalDateTime.now());
@@ -355,7 +359,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 .idRegistroAfectado(infraccion.getIdInfraccion().toString())
                 .detalles(Map.of(
                                 "infraccion_afectada", infraccion.getIdInfraccion().toString(),
-                                "estado_anterior", infraccion.getEstado(),
+                                "estado_anterior", statusBefore,
                                 "estado_actual", dbStatus,
                                 "procesado_por", idUsuario,
                                 "motivo", (motivo == null || motivo.trim().isEmpty() ? "No aplica" : motivo)
