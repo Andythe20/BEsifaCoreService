@@ -253,14 +253,14 @@ class InfraccionServiceImplTest {
 
     @Test
     void procesarInfraccionPorJpl_withAlreadyProcessed_throwsException() {
-        var infraccion = createInfraccion(1, "APROBADA");
+        var infraccion = createInfraccion(1, "EXPORTADA");
         var request = InfraccionUpdateRequest.builder().estado("RECHAZADA").build();
 
         given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
 
         assertThatThrownBy(() -> infraccionService.procesarInfraccionPorJpl(1, request, "jpl@test.cl"))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("ya fue procesada");
+                .hasMessageContaining("EXPORTADA");
     }
 
     @Test
@@ -310,6 +310,36 @@ class InfraccionServiceImplTest {
     }
 
     @Test
+    void actualizarEstadoInfraccion_whenRechazada_throwsIllegalState() {
+        var infraccion = createInfraccion(1, "RECHAZADA");
+        given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
+
+        assertThatThrownBy(() -> infraccionService.actualizarEstadoInfraccion(1, "accepted", "jpl@test.cl", null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("RECHAZADA");
+    }
+
+    @Test
+    void actualizarEstadoInfraccion_whenExportada_throwsIllegalState() {
+        var infraccion = createInfraccion(1, "EXPORTADA");
+        given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
+
+        assertThatThrownBy(() -> infraccionService.actualizarEstadoInfraccion(1, "accepted", "jpl@test.cl", null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("EXPORTADA");
+    }
+
+    @Test
+    void actualizarEstadoInfraccion_whenRejectedWithoutMotivo_throwsIllegalArgument() {
+        var infraccion = createInfraccion(1, "EN PROCESO");
+        given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
+
+        assertThatThrownBy(() -> infraccionService.actualizarEstadoInfraccion(1, "rejected", "jpl@test.cl", ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("motivo de rechazo");
+    }
+
+    @Test
     void editarInfraccion_updatesFieldsCorrectly() {
         var infraccion = createInfraccion(1, "EN PROCESO");
         java.util.Map<String, Object> updates = Map.of(
@@ -326,6 +356,26 @@ class InfraccionServiceImplTest {
         assertThat(result.getObservaciones()).isEqualTo("Nueva observacion");
         verify(infraccionRepository).save(infraccionCaptor.capture());
         assertThat(infraccionCaptor.getValue().getEstado()).isEqualTo("APROBADA");
+    }
+
+    @Test
+    void editarInfraccion_whenRechazada_throwsIllegalState() {
+        var infraccion = createInfraccion(1, "RECHAZADA");
+        given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
+
+        assertThatThrownBy(() -> infraccionService.editarInfraccion(1, Map.of("status", "accepted")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("RECHAZADA");
+    }
+
+    @Test
+    void editarInfraccion_whenExportada_throwsIllegalState() {
+        var infraccion = createInfraccion(1, "EXPORTADA");
+        given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
+
+        assertThatThrownBy(() -> infraccionService.editarInfraccion(1, Map.of("status", "pending")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("EXPORTADA");
     }
 
     @Test
