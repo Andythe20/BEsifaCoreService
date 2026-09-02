@@ -100,18 +100,18 @@ class AuditLogServiceImplTest {
     }
 
     @Test
-    void registrarLog_cuandoError_noPropagaExcepcion() {
+    void registrarLog_cuandoError_propagaExcepcion() {
         var request = AuditLogRequestDTO.builder()
                 .emailUsuario("admin@test.cl")
                 .accion("PROCESAR_INFRACCION")
+                .detalles(Map.of("estado", "APROBADA"))
                 .build();
 
         given(auditLogRepository.save(any())).willThrow(new RuntimeException("DB error"));
 
-        auditLogService.registrarLog(request);
-
-        // Debe atrapar el error silenciosamente sin propagar
-        verify(auditLogRepository).save(any());
+        assertThatThrownBy(() -> auditLogService.registrarLog(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("DB error");
     }
 
     private AuditLog createAuditLog() {

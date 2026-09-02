@@ -47,6 +47,36 @@ class AuditLogControllerTest extends ControllerTestBase {
     }
 
     @Test
+    void crearLogInterno_sinAccion_returnsBadRequest() throws Exception {
+        var request = """
+                {
+                    "emailUsuario": "admin@test.cl",
+                    "detalles": {"estado": "APROBADA"}
+                }
+                """;
+
+        mockMvc.perform(post("/core/api/v1/internal/audit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void crearLogInterno_sinDetalles_returnsBadRequest() throws Exception {
+        var request = """
+                {
+                    "emailUsuario": "admin@test.cl",
+                    "accion": "PROCESAR_INFRACCION"
+                }
+                """;
+
+        mockMvc.perform(post("/core/api/v1/internal/audit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void findAll_returnsPagedResults() throws Exception {
         var log = AuditLogResponseDTO.builder()
                 .email_usuario("admin@test.cl")
