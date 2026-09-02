@@ -5,6 +5,7 @@ import com.sifa.core_sifa.dto.audit.AuditLogResponseDTO;
 import com.sifa.core_sifa.service.audits.AuditLogServiceImpl;
 import com.sifa.core_sifa.service.audits.IAuditLogService;
 import io.swagger.v3.oas.annotations.Hidden;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,7 +29,7 @@ public class AuditLogController {
     private final IAuditLogService auditLogService;
 
     @PostMapping
-    public ResponseEntity<Void> crearLogInterno(@RequestBody AuditLogRequestDTO request) {
+    public ResponseEntity<Void> crearLogInterno(@Valid @RequestBody AuditLogRequestDTO request) {
         auditLogService.registrarLog(request);
         return ResponseEntity.ok().build();
     }

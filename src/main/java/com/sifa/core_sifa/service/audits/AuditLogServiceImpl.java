@@ -68,33 +68,18 @@ public class AuditLogServiceImpl implements IAuditLogService {
 
     @Transactional
     public void registrarLog(AuditLogRequestDTO request) {
-        try {
-            log.debug("[AUDITORIA] Iniciando envío asíncrono -> Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
-            AuditLog logEntity = AuditLog.builder()
-                    .emailUsuario(request.getEmailUsuario())
-                    .accion(request.getAccion())
-                    .tablaAfectada(request.getTablaAfectada())
-                    .idRegistroAfectado(request.getIdRegistroAfectado())
-                    .detalles(request.getDetalles())
-                    .build();
+        log.debug("[AUDITORIA] Registrando log -> Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
+        AuditLog logEntity = AuditLog.builder()
+                .emailUsuario(request.getEmailUsuario())
+                .accion(request.getAccion())
+                .tablaAfectada(request.getTablaAfectada())
+                .idRegistroAfectado(request.getIdRegistroAfectado())
+                .detalles(request.getDetalles())
+                .build();
 
-            auditLogRepository.save(logEntity);
-            log.info("Auditoría guardada exitosamente | Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
-        } catch (IllegalArgumentException e) {
-            log.error("[AUDITORIA-ERROR] Fallo de validación de URI o argumentos.");
-            log.error("Mensaje: {}", e.getMessage());
-            log.error("Stacktrace:", e);
-        } catch (Exception e) {
-            // Atrapamos el error para que NO afecte al usuario.
-            log.error("[AUDITORIA-ERROR] Error silencioso general al comunicarse con el Core.");
-            log.error("Clase del error: {}", e.getClass().getName());
-            log.error("Mensaje exacto: {}", e.getMessage());
-            if (e.getCause() != null) {
-                log.error("Causa raíz (Cause): {}", e.getCause().toString());
-            }
-            // Imprime el stacktrace completo para ver exactamente en qué clase de Feign falló
-            log.error("Stacktrace completo: ", e);
-        }
+        // La tabla de auditoría es de solo inserción: nunca se actualiza ni elimina un log.
+        auditLogRepository.save(logEntity);
+        log.info("Auditoría guardada exitosamente | Usuario: {} | Acción: {}", request.getEmailUsuario(), request.getAccion());
     }
 
 
