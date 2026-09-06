@@ -58,4 +58,11 @@ public class AuditLogController {
         return ResponseEntity.ok(logs);
 
     }
+
+    @PreAuthorize("hasAnyAuthority('USER_ADMIN')")
+    @GetMapping("/verificar")
+    public ResponseEntity<AuditLogServiceImpl.CadenaVerificacion> verificarCadena() {
+        log.info("Verificando integridad de la cadena de auditoría");
+        return ResponseEntity.ok(auditLogService.verificarCadena());
+    }
 }

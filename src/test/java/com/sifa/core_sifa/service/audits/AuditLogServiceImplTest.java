@@ -1,9 +1,11 @@
 package com.sifa.core_sifa.service.audits;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sifa.core_sifa.dto.audit.AuditLogRequestDTO;
 import com.sifa.core_sifa.exception.ResourceNotFoundException;
 import com.sifa.core_sifa.model.AuditLog;
 import com.sifa.core_sifa.repository.IAuditLogRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,11 +30,18 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class AuditLogServiceImplTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Mock
     private IAuditLogRepository auditLogRepository;
 
     @InjectMocks
     private AuditLogServiceImpl auditLogService;
+
+    @BeforeEach
+    void setUp() {
+        auditLogService = new AuditLogServiceImpl(auditLogRepository, objectMapper);
+    }
 
     @Test
     void findById_whenExists_returnsAuditLog() {
@@ -86,6 +95,7 @@ class AuditLogServiceImplTest {
 
     @Test
     void registrarLog_savesSuccessfully() {
+        given(auditLogRepository.findTopByOrderByIdAuditLogDesc(any())).willReturn(List.of());
         var request = AuditLogRequestDTO.builder()
                 .emailUsuario("admin@test.cl")
                 .accion("PROCESAR_INFRACCION")
@@ -101,6 +111,7 @@ class AuditLogServiceImplTest {
 
     @Test
     void registrarLog_cuandoError_propagaExcepcion() {
+        given(auditLogRepository.findTopByOrderByIdAuditLogDesc(any())).willReturn(List.of());
         var request = AuditLogRequestDTO.builder()
                 .emailUsuario("admin@test.cl")
                 .accion("PROCESAR_INFRACCION")
@@ -112,6 +123,70 @@ class AuditLogServiceImplTest {
         assertThatThrownBy(() -> auditLogService.registrarLog(request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("DB error");
+    }
+
+    @Test
+    void registrarLog_encadenaConElHashAnterior() {
+        // Último log con hashActual X; el nuevo debe apuntar su hashAnterior a X
+        var ultimo = createAuditLog();
+        String hashUltimo = "hash-del-log-anterior";
+        ultimo.setHashActual(hashUltimo);
+        given(auditLogRepository.findTopByOrderByIdAuditLogDesc(any())).willReturn(List.of(ultimo));
+
+        var request = AuditLogRequestDTO.builder()
+                .emailUsuario("admin@test.cl")
+                .accion("EVIDENCIA_VERIFICAR")
+                .tablaAfectada("evidencias_fotograficas")
+                .detalles(Map.of("idEvidencia", "1"))
+                .build();
+
+        auditLogService.registrarLog(request);
+
+        verify(auditLogRepository).save(any(AuditLog.class));
+        // Verificar que el hashAnterior quedó enlazado y que el hashActual no es nulo
+        // Se captura el log para validar el encadenamiento
+        var captor = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogRepository).save(captor.capture());
+        assertThat(captor.getValue().getHashAnterior()).isEqualTo(hashUltimo);
+        assertThat(captor.getValue().getHashActual()).isNotBlank();
+    }
+
+    @Test
+    void verificarCadena_cadenaIntegra_noReportaErrores() {
+        var log1 = createAuditLog();
+        var log2 = createAuditLog();
+        log2.setIdAuditLog(2L);
+
+        // Construir cadena válida computando hashes en orden
+        log1.setHashAnterior(null);
+        log1.setHashActual(auditLogService.calcularHash(log1));
+        log2.setHashAnterior(log1.getHashActual());
+        log2.setHashActual(auditLogService.calcularHash(log2));
+
+        given(auditLogRepository.findAllOrderByIdAsc()).willReturn(List.of(log1, log2));
+
+        var resultado = auditLogService.verificarCadena();
+
+        assertThat(resultado.integra()).isTrue();
+        assertThat(resultado.errores()).isEmpty();
+        assertThat(resultado.totalEventos()).isEqualTo(2);
+    }
+
+    @Test
+    void verificarCadena_contenidoAlterado_reportaError() {
+        var log1 = createAuditLog();
+        log1.setHashAnterior(null);
+        log1.setHashActual(auditLogService.calcularHash(log1));
+
+        // Se modifica un campo después de calcular el hash -> la cadena se rompe
+        log1.setEmailUsuario("otro@test.cl");
+
+        given(auditLogRepository.findAllOrderByIdAsc()).willReturn(List.of(log1));
+
+        var resultado = auditLogService.verificarCadena();
+
+        assertThat(resultado.integra()).isFalse();
+        assertThat(resultado.errores()).isNotEmpty();
     }
 
     private AuditLog createAuditLog() {

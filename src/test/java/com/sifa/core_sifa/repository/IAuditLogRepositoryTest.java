@@ -29,6 +29,7 @@ class IAuditLogRepositoryTest extends AbstractIntegrationTest {
                 .idRegistroAfectado("1")
                 .detalles(Map.of("estado", "APROBADA"))
                 .fechaHora(LocalDateTime.now())
+                .hashActual("hash-actual-1")
                 .build());
         auditLogRepository.save(AuditLog.builder()
                 .emailUsuario("supervisor@test.cl")
@@ -37,6 +38,7 @@ class IAuditLogRepositoryTest extends AbstractIntegrationTest {
                 .idRegistroAfectado("2")
                 .detalles(Map.of("tipo", "MAL_ESTACIONADO"))
                 .fechaHora(LocalDateTime.now().minusDays(1))
+                .hashActual("hash-actual-2")
                 .build());
     }
 

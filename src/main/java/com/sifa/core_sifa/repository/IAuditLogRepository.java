@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 import com.sifa.core_sifa.model.AuditLog;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface IAuditLogRepository extends JpaRepository<AuditLog, Long> {
@@ -32,4 +34,14 @@ public interface IAuditLogRepository extends JpaRepository<AuditLog, Long> {
             @Param("search") String search,
             Pageable pageable
     );
+
+    // Último log registrado (para encadenar el hashAnterior del siguiente evento)
+    @Query("SELECT a FROM AuditLog a ORDER BY a.idAuditLog DESC")
+    List<AuditLog> findTopByOrderByIdAuditLogDesc(Pageable pageable);
+
+    // Todos los logs en orden ascendente (para verificar la cadena de hashes)
+    @Query("SELECT a FROM AuditLog a ORDER BY a.idAuditLog ASC")
+    List<AuditLog> findAllOrderByIdAsc();
+
+    Optional<AuditLog> findFirstByOrderByIdAuditLogAsc();
 }

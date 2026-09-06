@@ -78,6 +78,13 @@ public class InfraccionResponse {
   )
   private List<String> evidenceUrls;
 
+  // 4. Integridad de las evidencias
+  @Schema(
+          description = "Información de integridad por evidencia: hash SHA-256, versión del objeto y si el archivo coincide con el hash registrado. Se verifica en consultas puntuales.",
+          implementation = EvidenceIntegrityDTO.class
+  )
+  private List<EvidenceIntegrityDTO> evidenceIntegrity;
+
 
   @Data
   @Builder
@@ -176,6 +183,23 @@ public class InfraccionResponse {
     private LocalDateTime fechaCitacion;
   }
 
+  @Data
+  @Builder
+  @Schema(description = "Estado de integridad de una evidencia: hash registrado, versión y si el archivo no fue alterado")
+  public static class EvidenceIntegrityDTO {
+    @Schema(description = "URL pública de la evidencia", example = "https://sifa-storage.s3.amazonaws.com/evidencias/2026/05/inf_1024_frontal.jpg")
+    private String url;
+
+    @Schema(description = "Hash SHA-256 registrado al momento de la recepción", example = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08")
+    private String sha256Hash;
+
+    @Schema(description = "Versión del objeto en S3", example = "0")
+    private Integer versionObjeto;
+
+    @Schema(description = "Indica si el archivo actual coincide con el hash registrado (true = no fue alterado)", example = "true")
+    private boolean integro;
+  }
+
   /**
    * Mapea los estados internos de la BD (español) a los estándares del frontend
    * (inglés).
@@ -211,6 +235,7 @@ public class InfraccionResponse {
             .propietario(buildPropietario(entity))
             .citacion(buildCitacion(entity))
             .evidenceUrls(buildEvidenceUrls(entity))
+            .evidenceIntegrity(buildEvidenceIntegrity(entity))
             .build();
   }
 
@@ -272,6 +297,25 @@ public class InfraccionResponse {
     if (entity.getEvidenciasFotograficas() == null) return Collections.emptyList();
     return entity.getEvidenciasFotograficas().stream()
             .map(EvidenciaFotografica::getUrl)
+            .collect(Collectors.toList());
+  }
+
+  /**
+   * Construye la información de integridad a partir de los datos persistidos.
+   * <p>
+   * El flag {@code integro} representa la verificación calculada en tiempo de
+   * consulta; se deja en {@code false} por defecto aquí y es enriquecido por el
+   * servicio cuando corresponde (verificación puntual de una evidencia).
+   */
+  private static List<EvidenceIntegrityDTO> buildEvidenceIntegrity(Infraccion entity) {
+    if (entity.getEvidenciasFotograficas() == null) return Collections.emptyList();
+    return entity.getEvidenciasFotograficas().stream()
+            .map(ef -> EvidenceIntegrityDTO.builder()
+                    .url(ef.getUrl())
+                    .sha256Hash(ef.getSha256Hash())
+                    .versionObjeto(ef.getVersionObjeto())
+                    .integro(false)
+                    .build())
             .collect(Collectors.toList());
   }
 }

@@ -2,6 +2,7 @@ package com.sifa.core_sifa.service.infraccion;
 
 import com.sifa.core_sifa.dto.audit.AuditLogRequestDTO;
 import com.sifa.core_sifa.dto.infraccion.*;
+import com.sifa.core_sifa.dto.storage.StorageUploadResult;
 import com.sifa.core_sifa.model.AuditAction;
 import com.sifa.core_sifa.service.CitacionService;
 import com.sifa.core_sifa.service.audits.IAuditLogService;
@@ -22,6 +23,7 @@ import com.sifa.core_sifa.repository.IInfraccionRepository;
 import com.sifa.core_sifa.repository.ITipoInfraccionRepository;
 import com.sifa.core_sifa.repository.IVehiculoRepository;
 import com.sifa.core_sifa.service.IStorageService;
+import com.sifa.core_sifa.util.ChecksumUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -72,7 +74,9 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Infraccion no encontrada o inexistente"));
 
-        return InfraccionResponse.fromEntity(infraccion);
+        InfraccionResponse response = InfraccionResponse.fromEntity(infraccion);
+        verificarIntegridadEvidencias(response);
+        return response;
     }
 
     @Override
@@ -147,15 +151,19 @@ public class InfraccionServiceImpl implements IInfraccionService {
         List<String> uploadedUrls = new java.util.ArrayList<>();
 
         try {
-            List<String> urls = storageService.uploadFiles(
+            // Sube los archivos entregando además su hash SHA-256 para persistir la integridad
+            List<StorageUploadResult> uploadResults = storageService.uploadFilesDetailed(
                     fotos,
                     request.getPatenteVehiculo());
 
-            uploadedUrls.addAll(urls);
+            uploadResults.forEach(r -> uploadedUrls.add(r.url()));
 
-            List<EvidenciaFotografica> evidencias = urls.stream()
-                    .map(url -> EvidenciaFotografica.builder()
-                            .url(url)
+            List<EvidenciaFotografica> evidencias = uploadResults.stream()
+                    .map(r -> EvidenciaFotografica.builder()
+                            .url(r.url())
+                            .sha256Hash(r.sha256Hash())
+                            .versionObjeto(r.versionObjeto() != null ? r.versionObjeto() : 0)
+                            .idDispositivo(request.getDispositivoId())
                             .infraccion(nuevaInfraccion)
                             .build())
                     .collect(Collectors.toList());
@@ -166,6 +174,9 @@ public class InfraccionServiceImpl implements IInfraccionService {
 
             log.info("Infracción creada exitosamente con ID: {}",
                     infraccionGuardada.getIdInfraccion());
+
+            // Registra el evento de custodia de cada evidencia en la bitácora de auditoría
+            registrarCustodiaEvidencias(infraccionGuardada, idFiscalizador, request);
 
             // luego de la creacion de la infracción, se continua a crear la citación
             citacionService.crearCitacion(infraccionGuardada.getIdInfraccion(), request.getFechaCitacion());
@@ -654,7 +665,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
                     "Fecha Emision", "Lugar", "Latitud", "Longitud",
                     "Estado", "Motivo Rechazo", "Fecha Resolucion",
                     "Fiscalizador", "JPL", "Observaciones",
-                    "Fecha Citacion", "Fotos"
+                    "Fecha Citacion", "Fotos", "Fotos Hash"
             };
             writer.writeNext(header);
 
@@ -688,9 +699,13 @@ public class InfraccionServiceImpl implements IInfraccionService {
                 String fechaCit = i.getCitacion() != null && i.getCitacion().getFecha() != null
                         ? i.getCitacion().getFecha().format(dateFmt) : "";
                 String fotos = "";
+                String fotosHash = "";
                 if (i.getEvidenciasFotograficas() != null) {
                     fotos = i.getEvidenciasFotograficas().stream()
                             .map(ef -> ef.getUrl() != null ? ef.getUrl() : "")
+                            .collect(Collectors.joining(" | "));
+                    fotosHash = i.getEvidenciasFotograficas().stream()
+                            .map(ef -> ef.getSha256Hash() != null ? ef.getSha256Hash() : "")
                             .collect(Collectors.joining(" | "));
                 }
 
@@ -700,7 +715,7 @@ public class InfraccionServiceImpl implements IInfraccionService {
                         fecha, lugar, lat, lng,
                         estado, motivo, fechaRes,
                         fiscalizador, jpl, obs,
-                        fechaCit, fotos
+                        fechaCit, fotos, fotosHash
                 });
             }
 
@@ -712,5 +727,69 @@ public class InfraccionServiceImpl implements IInfraccionService {
 
         log.info("CSV generado exitosamente con {} registros ({} bytes)", infracciones.size(), baos.size());
         return baos.toByteArray();
+    }
+
+    /**
+     * Verifica la integridad de las evidencias recalculando el hash SHA-256 de
+     * cada archivo y comparándolo contra el registrado. Se usa en consultas
+     * puntuales (volumen acotado), no en listados paginados.
+     */
+    private void verificarIntegridadEvidencias(InfraccionResponse response) {
+        if (response.getEvidenceIntegrity() == null) {
+            return;
+        }
+
+        for (InfraccionResponse.EvidenceIntegrityDTO evidencia : response.getEvidenceIntegrity()) {
+            boolean integro = false;
+            try {
+                byte[] bytes = storageService.downloadFile(evidencia.getUrl());
+                String hashCalculado = ChecksumUtil.sha256(bytes);
+                integro = hashCalculado.equals(evidencia.getSha256Hash());
+            } catch (Exception e) {
+                // Si el archivo no está disponible, se considera alterado/pendiente
+                log.warn("No se pudo verificar la evidencia {}: {}", evidencia.getUrl(), e.getMessage());
+                integro = false;
+            }
+            evidencia.setIntegro(integro);
+        }
+    }
+
+    /**
+     * Registra en la bitácora de auditoría el evento de custodia de cada
+     * evidencia recién creada (quién/dispositivo/fecha/ubicación/hash/versión).
+     */
+    private void registrarCustodiaEvidencias(Infraccion infraccion, String idFiscalizador,
+                                             InfraccionCreateRequest request) {
+        if (infraccion.getEvidenciasFotograficas() == null) {
+            return;
+        }
+
+        for (EvidenciaFotografica evidencia : infraccion.getEvidenciasFotograficas()) {
+            AuditLogRequestDTO auditLog = AuditLogRequestDTO.builder()
+                    .emailUsuario(idFiscalizador)
+                    .accion(String.valueOf(AuditAction.EVIDENCIA_REGISTRAR))
+                    .tablaAfectada("evidencias_fotograficas")
+                    .idRegistroAfectado(evidencia.getIdEvidenciaFotografica() != null
+                            ? evidencia.getIdEvidenciaFotografica().toString()
+                            : infraccion.getIdInfraccion().toString())
+                    .detalles(Map.of(
+                            "idEvidencia", evidencia.getIdEvidenciaFotografica() != null
+                                    ? evidencia.getIdEvidenciaFotografica().toString()
+                                    : infraccion.getIdInfraccion().toString(),
+                            "idInfraccion", infraccion.getIdInfraccion().toString(),
+                            "idDispositivo", evidencia.getIdDispositivo() != null ? evidencia.getIdDispositivo() : "N/A",
+                            "ubicacion_lat", String.valueOf(infraccion.getLatitud()),
+                            "ubicacion_lng", String.valueOf(infraccion.getLongitud()),
+                            "fecha", evidencia.getFechaRegistro() != null
+                                    ? evidencia.getFechaRegistro().toString()
+                                    : infraccion.getFecha().toString(),
+                            "sha256", evidencia.getSha256Hash(),
+                            "versionObjeto", String.valueOf(evidencia.getVersionObjeto()),
+                            "operacion", "registro"
+                    ))
+                    .build();
+
+            auditLogService.registrarLog(auditLog);
+        }
     }
 }

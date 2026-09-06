@@ -19,6 +19,8 @@ public class AuditLogResponseDTO {
     private String id_registro_afectado;
     private Map<String, Object> detalles;
     private LocalDateTime fecha_hora;
+    private String hash_anterior;
+    private String hash_actual;
 
     public static AuditLogResponseDTO fromEntity(AuditLog auditLog) {
         return AuditLogResponseDTO.builder()
@@ -28,6 +30,8 @@ public class AuditLogResponseDTO {
                 .id_registro_afectado(auditLog.getIdRegistroAfectado())
                 .detalles(auditLog.getDetalles())
                 .fecha_hora(auditLog.getFechaHora())
+                .hash_anterior(auditLog.getHashAnterior())
+                .hash_actual(auditLog.getHashActual())
                 .build();
     }
 }
