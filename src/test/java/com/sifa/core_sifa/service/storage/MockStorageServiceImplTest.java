@@ -40,4 +40,26 @@ class MockStorageServiceImplTest {
     void deleteFile_noLanzaExcepcion() {
         storageService.deleteFile("https://mock.sifa.cl/test.jpg");
     }
+
+    @Test
+    void uploadFilesDetailed_retornaHashYVersion() {
+        var file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "contenido".getBytes());
+
+        var results = storageService.uploadFilesDetailed(List.of(file), "infraccion_1");
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).url()).startsWith("https://mock.sifa.cl/");
+        assertThat(results.get(0).sha256Hash()).isNotBlank();
+        assertThat(results.get(0).versionObjeto()).isEqualTo(0);
+    }
+
+    @Test
+    void downloadFile_retornaElContenidoSubido() {
+        var file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "datos".getBytes());
+        var results = storageService.uploadFilesDetailed(List.of(file), "infraccion_1");
+
+        var bytes = storageService.downloadFile(results.get(0).url());
+
+        assertThat(bytes).isEqualTo("datos".getBytes());
+    }
 }

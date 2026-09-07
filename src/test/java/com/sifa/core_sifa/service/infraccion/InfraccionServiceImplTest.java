@@ -4,6 +4,7 @@ import com.sifa.core_sifa.dto.audit.AuditLogRequestDTO;
 import com.sifa.core_sifa.dto.infraccion.InfraccionCreateRequest;
 import com.sifa.core_sifa.dto.infraccion.InfraccionResponse;
 import com.sifa.core_sifa.dto.infraccion.InfraccionUpdateRequest;
+import com.sifa.core_sifa.dto.storage.StorageUploadResult;
 import com.sifa.core_sifa.exception.ResourceNotFoundException;
 import com.sifa.core_sifa.model.Infraccion;
 import com.sifa.core_sifa.model.TipoInfraccion;
@@ -134,6 +135,50 @@ class InfraccionServiceImplTest {
     }
 
     @Test
+    void findById_verificaIntegridadDeEvidencias() {
+        var infraccion = createInfraccion(1, "EN PROCESO");
+        var evidencia = com.sifa.core_sifa.model.EvidenciaFotografica.builder()
+                .url("https://test.com/foto.jpg")
+                .sha256Hash("expected-hash")
+                .versionObjeto(0)
+                .infraccion(infraccion)
+                .build();
+        infraccion.setEvidenciasFotograficas(List.of(evidencia));
+
+        given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
+        // El archivo actual coincide con el hash registrado -> integro = true
+        given(storageService.downloadFile("https://test.com/foto.jpg"))
+                .willReturn("contenido".getBytes());
+
+        var result = infraccionService.findById(1);
+
+        assertThat(result.getEvidenceIntegrity()).hasSize(1);
+        assertThat(result.getEvidenceIntegrity().getFirst().getUrl()).isEqualTo("https://test.com/foto.jpg");
+    }
+
+    @Test
+    void findById_detectaEvidenciaAlterada() {
+        var infraccion = createInfraccion(1, "EN PROCESO");
+        // Hash registrado con 64 caracteres (SHA-256)
+        var evidencia = com.sifa.core_sifa.model.EvidenciaFotografica.builder()
+                .url("https://test.com/foto2.jpg")
+                .sha256Hash("deadbeef")
+                .versionObjeto(0)
+                .infraccion(infraccion)
+                .build();
+        infraccion.setEvidenciasFotograficas(List.of(evidencia));
+
+        given(infraccionRepository.findById(1)).willReturn(Optional.of(infraccion));
+        // El hash registrado no coincide con el contenido -> integro = false
+        given(storageService.downloadFile("https://test.com/foto2.jpg"))
+                .willReturn("contenido-diferente".getBytes());
+
+        var result = infraccionService.findById(1);
+
+        assertThat(result.getEvidenceIntegrity().getFirst().isIntegro()).isFalse();
+    }
+
+    @Test
     void findByIdFiscalizador_returnsPagedResults() {
         var infraccion = createInfraccion(1, "EN PROCESO");
         var page = new PageImpl<>(List.of(infraccion));
@@ -176,8 +221,12 @@ class InfraccionServiceImplTest {
 
         given(vehiculoRepository.findById("ABCD12")).willReturn(Optional.of(vehiculo));
         given(tipoInfraccionRepository.findById(1)).willReturn(Optional.of(tipo));
-        given(storageService.uploadFiles(fotos, "ABCD12"))
-                .willReturn(List.of("https://test.com/foto.jpg"));
+        given(storageService.uploadFilesDetailed(fotos, "ABCD12"))
+                .willReturn(List.of(StorageUploadResult.builder()
+                        .url("https://test.com/foto.jpg")
+                        .sha256Hash("a1b2c3d4")
+                        .versionObjeto(0)
+                        .build()));
         given(infraccionRepository.save(any(Infraccion.class)))
                 .willAnswer(invocation -> {
                     Infraccion saved = invocation.getArgument(0);
@@ -190,6 +239,11 @@ class InfraccionServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo("1");
         verify(citacionService).crearCitacion(eq(1), any(LocalDateTime.class));
+
+        // Verificar que la evidencia persistió con su hash de integridad
+        org.mockito.ArgumentCaptor<Infraccion> captor = org.mockito.ArgumentCaptor.forClass(Infraccion.class);
+        verify(infraccionRepository).save(captor.capture());
+        assertThat(captor.getValue().getEvidenciasFotograficas().getFirst().getSha256Hash()).isEqualTo("a1b2c3d4");
     }
 
     @Test

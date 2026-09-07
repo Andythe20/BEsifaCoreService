@@ -51,6 +51,10 @@ public class InfraccionCreateRequest {
     @Schema(description = "Campo que puede ser llenado cuando se esta registrando la infraccion", example = "El vehiculo estaba estacionado en medio de un paso cebra")
     private String observaciones;
 
+    // Identificador del dispositivo móvil (Opcional, para trazabilidad de la evidencia)
+    @Schema(description = "Identificador del dispositivo móvil que capturó las fotografías de evidencia", example = "device-abc-123")
+    private String dispositivoId;
+
     @Schema(description = "Fecha de citación al JPL", example = "2024-05-20T14:30:00")
     @NotNull(message = "La fecha de citación al JPL es obligatoria para el flujo empadronado")
     @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")

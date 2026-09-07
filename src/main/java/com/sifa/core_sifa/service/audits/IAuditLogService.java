@@ -21,4 +21,9 @@ public interface IAuditLogService {
 
     void registrarLog(AuditLogRequestDTO request);
 
+    /**
+     * Verifica la integridad de la cadena de hashes de auditoría.
+     */
+    AuditLogServiceImpl.CadenaVerificacion verificarCadena();
+
 }

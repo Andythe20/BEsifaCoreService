@@ -64,9 +64,15 @@ class IEvidenciaFotograficaRepositoryTest extends AbstractIntegrationTest {
                 .vehiculo(vehiculo).tipoInfraccion(tipo).build());
 
         evidenciaRepository.save(EvidenciaFotografica.builder()
-                .url("https://s3.test.cl/foto1.jpg").infraccion(infraccion).build());
+                .url("https://s3.test.cl/foto1.jpg")
+                .sha256Hash("hash1")
+                .versionObjeto(0)
+                .infraccion(infraccion).build());
         evidenciaRepository.save(EvidenciaFotografica.builder()
-                .url("https://s3.test.cl/foto2.jpg").infraccion(infraccion).build());
+                .url("https://s3.test.cl/foto2.jpg")
+                .sha256Hash("hash2")
+                .versionObjeto(0)
+                .infraccion(infraccion).build());
     }
 
     @Test

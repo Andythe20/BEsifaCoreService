@@ -1,6 +1,7 @@
 package com.sifa.core_sifa.model;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
 import jakarta.persistence.*;
@@ -49,10 +50,24 @@ public class AuditLog {
     @Column(nullable = false)
     private LocalDateTime fechaHora;
 
-    // Autogenerar la fecha antes de insertar para no depender del controlador
+    // Hash SHA-256 del evento anterior (encadena la cadena de auditoría)
+    // null para el primer evento de la cadena
+    @Column(nullable = true, length = 64)
+    private String hashAnterior;
+
+    // Hash SHA-256 calculado a partir del contenido de este log + hashAnterior
+    @NotNull
+    @Column(nullable = false, length = 64)
+    private String hashActual;
+
+    // Autogenerar la fecha antes de insertar para no depender del controlador.
+    // Solo si aún no fue asignada (el servicio ya la fija antes de calcular el hash)
+    // y truncada a microsegundos para coincidir con DATETIME(6) de MySQL en el round-trip.
     @PrePersist
     protected void onCreate() {
-        this.fechaHora = LocalDateTime.now();
+        if (this.fechaHora == null) {
+            this.fechaHora = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        }
     }
 
 }

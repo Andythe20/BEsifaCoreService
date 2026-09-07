@@ -73,6 +73,9 @@ public class TestDataFactory {
     public static EvidenciaFotografica createEvidencia(String url, Infraccion infraccion) {
         return EvidenciaFotografica.builder()
                 .url(url)
+                .sha256Hash(java.util.UUID.randomUUID().toString().replace("-", ""))
+                .versionObjeto(0)
+                .fechaRegistro(LocalDateTime.now())
                 .infraccion(infraccion)
                 .build();
     }

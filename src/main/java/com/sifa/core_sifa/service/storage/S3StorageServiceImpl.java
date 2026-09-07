@@ -7,11 +7,14 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.sifa.core_sifa.dto.storage.StorageUploadResult;
 import com.sifa.core_sifa.service.IStorageService;
+import com.sifa.core_sifa.util.ChecksumUtil;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -130,6 +133,55 @@ public class S3StorageServiceImpl implements IStorageService {
         }
 
         return urls;
+    }
+
+    @Override
+    public List<StorageUploadResult> uploadFilesDetailed(List<MultipartFile> files, String patente) {
+        List<StorageUploadResult> results = new ArrayList<>();
+
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            String extension = getFileExtension(file.getOriginalFilename());
+            String fileName = buildFileName(patente, i + 1);
+            String key = FOLDER_PREFIX + patente.toUpperCase() + "/" + fileName + "." + extension;
+
+            try {
+                byte[] bytes = file.getBytes();
+                s3Client.putObject(
+                        PutObjectRequest.builder()
+                                .bucket(bucketName)
+                                .key(key)
+                                .contentType(file.getContentType())
+                                .build(),
+                        RequestBody.fromBytes(bytes));
+
+                String url = buildFileUrl(key);
+
+                results.add(StorageUploadResult.builder()
+                        .url(url)
+                        .sha256Hash(ChecksumUtil.sha256(bytes))
+                        .versionObjeto(0)
+                        .build());
+
+                log.info("Archivo subido correctamente con hash: {}", url);
+            } catch (IOException e) {
+                log.error("Error subiendo archivo a S3", e);
+                throw new RuntimeException("No se pudo subir el archivo", e);
+            }
+        }
+
+        return results;
+    }
+
+    @Override
+    public byte[] downloadFile(String fileUrl) {
+        String key = extractKeyFromUrl(fileUrl);
+
+        return s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .build())
+                .asByteArray();
     }
 
     @Override
