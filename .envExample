@@ -10,6 +10,12 @@ DB_USER=usuario_de_tu_base_de_datos
 DB_PASSWORD=password_de_tu_base_de_datos
 
 # ============================================
+# JWT
+# ============================================
+JWT_SECRET=llave_segura
+INTERNAL_JWT_SECRET=llave_segura
+
+# ============================================
 # AWS S3 CONFIGURATION
 # ============================================
 # Nombre del bucket de S3 donde se almacenarán los archivos

@@ -18,10 +18,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,7 +53,7 @@ public class NotificationPushController {
     @PostMapping
     public ResponseEntity<Map<String, String>> sendPush(
             @Valid @RequestBody SinglePushRequest request,
-            @RequestHeader("X-Auth-User") String user) {
+            @AuthenticationPrincipal String user) {
 
         try {
             String messageId = pushService.send(request.getToken(), request.getTitle(), request.getBody());
@@ -118,7 +118,7 @@ public class NotificationPushController {
     @PostMapping("/all")
     public ResponseEntity<Map<String, Object>> notifyAll(
             @Valid @RequestBody BulkPushRequest request,
-            @RequestHeader("X-Auth-User") String user) {
+            @AuthenticationPrincipal String user) {
         try {
             int sent = deviceTokenService.notifyAllDevices(
                     request.getTitle(),
@@ -142,7 +142,7 @@ public class NotificationPushController {
     @PostMapping("/platform")
     public ResponseEntity<Map<String, Object>> notifyByPlatform(
             @Valid @RequestBody BulkPushRequest request,
-            @RequestHeader("X-Auth-User") String user) {
+            @AuthenticationPrincipal String user) {
         try {
             int sent = deviceTokenService.notifyByPlatform(
                     request.getTargetPlatform(),
@@ -178,7 +178,7 @@ public class NotificationPushController {
     @PostMapping("/select")
     public ResponseEntity<Map<String, Object>> notifySelect(
             @Valid @RequestBody SelectPushRequest request,
-            @RequestHeader("X-Auth-User") String user) {
+            @AuthenticationPrincipal String user) {
         try {
             int sent = deviceTokenService.notifyDevicesByIds(
                     request.getDeviceIds(),
@@ -203,7 +203,7 @@ public class NotificationPushController {
     @PostMapping("/outdated")
     public ResponseEntity<Map<String, Object>> notifyOutdated(
             @Valid @RequestBody OutdatedPushRequest request,
-            @RequestHeader("X-Auth-User") String user) {
+            @AuthenticationPrincipal String user) {
         try {
             int sent = deviceTokenService.notifyOutdatedDevices(
                     request.getCurrentVersion(),

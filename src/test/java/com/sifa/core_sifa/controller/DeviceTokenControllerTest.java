@@ -42,8 +42,7 @@ class DeviceTokenControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/devices/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "fiscalizador@test.cl")
-                        .header("X-Auth-Roles", "USER_APP"))
+                        .headers(authHeadersFor("fiscalizador@test.cl", "USER_APP")))
                 .andExpect(status().isOk());
     }
 

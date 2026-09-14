@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -42,7 +43,7 @@ public class FiscalizadorPresenciaController {
     public ResponseEntity<Void> recibirHeartbeat(
             @Parameter(description = "Payload con las coordenadas GPS actuales", required = true) @Valid @RequestBody FiscalizadorHeartbeatRequest request,
 
-            @Parameter(hidden = true) @RequestHeader("X-Auth-User") String emailInspector) {
+            @AuthenticationPrincipal String emailInspector) {
 
         presenciaService.registrarLatido(emailInspector, request);
         deviceTokenService.processHeartbeat(emailInspector, request);

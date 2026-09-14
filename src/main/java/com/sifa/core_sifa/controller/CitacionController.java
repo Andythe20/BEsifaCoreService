@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.sifa.core_sifa.dto.citacion.CitacionResponse;
@@ -103,7 +104,7 @@ public class CitacionController {
             @Parameter(description = "Payload con la nueva fecha y hora para la cita", required = true)
             @Valid @RequestBody CitacionUpdateRequest request,
 
-            @Parameter(hidden = true) @RequestHeader("X-Auth-User") String emailAdministrativoJpl) {
+            @AuthenticationPrincipal String emailAdministrativoJpl) {
 
         log.info("Petición PUT para actualizar citación ID: {} recibida. Administrativo: {}", id, emailAdministrativoJpl);
         CitacionResponse citacionActualizada = citacionService.actualizarCitacion(id, request, emailAdministrativoJpl);
