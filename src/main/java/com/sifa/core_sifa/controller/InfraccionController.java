@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Pageable;
@@ -160,7 +161,7 @@ public class InfraccionController {
             // Forzamos a Swagger a mostrar el botón nativo de subida de múltiples archivos
             @Parameter(description = "Archivos de imagen (Fotografías de evidencia)", required = true, content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE, array = @ArraySchema(schema = @Schema(type = "string", format = "binary")))) @RequestPart("fotos") List<MultipartFile> fotos,
 
-            @Parameter(hidden = true) @RequestHeader("X-Auth-User") String idFiscalizador) {
+            @AuthenticationPrincipal String idFiscalizador) {
 
         log.info("Petición de creación de infracción recibida desde el Gateway. Fiscalizador ID: {}",
                 idFiscalizador);
@@ -180,7 +181,7 @@ public class InfraccionController {
     public ResponseEntity<InfraccionResponse> procesarInfraccion(
             @Parameter(description = "ID de la infracción") @PathVariable Integer id,
             @Valid @RequestBody InfraccionUpdateRequest request,
-            @Parameter(hidden = true) @RequestHeader("X-Auth-User") String idAdministrativoJpl) {
+            @AuthenticationPrincipal String idAdministrativoJpl) {
 
         log.info("Petición para procesar infracción ID: {} recibida. Administrativo JPL ID: {}", id,
                 idAdministrativoJpl);
@@ -207,7 +208,7 @@ public class InfraccionController {
             // borrar 'additionalProp1'
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Cuerpo JSON con el estado. Valores típicos: pending, accepted, rejected, exported.", required = true, content = @Content(mediaType = "application/json", schema = @Schema(example = "{\n  \"status\": \"accepted\"\n}"))) @RequestBody Map<String, String> body,
 
-            @Parameter(hidden = true) @RequestHeader(value = "X-Auth-User", required = false) String idUsuario) {
+            @AuthenticationPrincipal String idUsuario) {
 
         String status = body.get("status");
         String motivo = body.get("motivoRechazo");

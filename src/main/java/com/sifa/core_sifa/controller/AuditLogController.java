@@ -28,6 +28,7 @@ public class AuditLogController {
 
     private final IAuditLogService auditLogService;
 
+    @PreAuthorize("hasAuthority('USER_ADMIN')")
     @PostMapping
     public ResponseEntity<Void> crearLogInterno(@Valid @RequestBody AuditLogRequestDTO request) {
         auditLogService.registrarLog(request);

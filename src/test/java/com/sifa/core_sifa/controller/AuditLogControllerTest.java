@@ -41,6 +41,7 @@ class AuditLogControllerTest extends ControllerTestBase {
                 """;
 
         mockMvc.perform(post("/core/api/v1/internal/audit")
+                        .headers(authHeaders("USER_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk());
@@ -56,6 +57,7 @@ class AuditLogControllerTest extends ControllerTestBase {
                 """;
 
         mockMvc.perform(post("/core/api/v1/internal/audit")
+                        .headers(authHeaders("USER_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest());
@@ -71,6 +73,7 @@ class AuditLogControllerTest extends ControllerTestBase {
                 """;
 
         mockMvc.perform(post("/core/api/v1/internal/audit")
+                        .headers(authHeaders("USER_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest());

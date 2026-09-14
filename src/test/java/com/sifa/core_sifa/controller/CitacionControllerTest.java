@@ -39,7 +39,7 @@ class CitacionControllerTest extends ControllerTestBase {
         given(citacionService.findAll(any(), any(), any(), any())).willReturn(page);
 
         mockMvc.perform(get("/core/api/v1/citaciones/all")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].idCitacion").value(1));
     }

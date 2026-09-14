@@ -50,8 +50,7 @@ class FiscalizadorPresenciaControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/fis-activity/heartbeat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "fiscalizador@test.cl")
-                        .header("X-Auth-Roles", "USER_APP"))
+                        .headers(authHeadersFor("fiscalizador@test.cl", "USER_APP")))
                 .andExpect(status().isOk());
 
         verify(presenciaService).registrarLatido(eq("fiscalizador@test.cl"), any(FiscalizadorHeartbeatRequest.class));

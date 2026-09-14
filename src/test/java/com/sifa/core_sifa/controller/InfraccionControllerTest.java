@@ -42,7 +42,7 @@ class InfraccionControllerTest extends ControllerTestBase {
                 .willReturn(page);
 
         mockMvc.perform(get("/core/api/v1/infracciones/all")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
     }
@@ -52,7 +52,7 @@ class InfraccionControllerTest extends ControllerTestBase {
         mockMvc.perform(get("/core/api/v1/infracciones/all")
                         .param("startDate", "2024-01-10")
                         .param("endDate", "2024-01-01")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isBadRequest());
     }
 
@@ -90,8 +90,7 @@ class InfraccionControllerTest extends ControllerTestBase {
         mockMvc.perform(multipart("/core/api/v1/infracciones")
                         .file(foto)
                         .file(infraccionPart)
-                        .header("X-Auth-User", "fiscalizador@test.cl")
-                        .header("X-Auth-Roles", "USER_APP"))
+                        .headers(authHeadersFor("fiscalizador@test.cl", "USER_APP")))
                 .andExpect(status().isCreated());
     }
 
@@ -109,8 +108,7 @@ class InfraccionControllerTest extends ControllerTestBase {
         mockMvc.perform(put("/core/api/v1/infracciones/1/procesar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson)
-                        .header("X-Auth-User", "jpl@test.cl")
-                        .header("X-Auth-Roles", "USER_JPL"))
+                        .headers(authHeadersFor("jpl@test.cl", "USER_JPL")))
                 .andExpect(status().isOk());
     }
 
@@ -133,7 +131,7 @@ class InfraccionControllerTest extends ControllerTestBase {
                 .willReturn(List.of());
 
         mockMvc.perform(get("/core/api/v1/infracciones/coordenadas")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -143,7 +141,7 @@ class InfraccionControllerTest extends ControllerTestBase {
                 .willReturn(ReporteResumenDTO.builder().build());
 
         mockMvc.perform(get("/core/api/v1/infracciones/resumen-reporte")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -186,7 +184,7 @@ class InfraccionControllerTest extends ControllerTestBase {
                 .willReturn(DashboardEstadisticasDTO.builder().totalInfracciones(10L).build());
 
         mockMvc.perform(get("/core/api/v1/infracciones/estadisticas")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalInfracciones").value(10));
     }

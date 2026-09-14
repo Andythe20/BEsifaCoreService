@@ -37,7 +37,7 @@ class TipoInfraccionControllerTest extends ControllerTestBase {
         given(tipoInfraccionService.findAllPaged(any())).willReturn(page);
 
         mockMvc.perform(get("/core/api/v1/tipoInfracciones/all")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].nombre").value("Test"));
     }
@@ -48,7 +48,7 @@ class TipoInfraccionControllerTest extends ControllerTestBase {
                 .willReturn(TipoInfraccionDTO.builder().id(1).nombre("Mal Estacionado").build());
 
         mockMvc.perform(get("/core/api/v1/tipoInfracciones/id/1")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Mal Estacionado"));
     }
@@ -63,7 +63,7 @@ class TipoInfraccionControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/tipoInfracciones")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -77,7 +77,7 @@ class TipoInfraccionControllerTest extends ControllerTestBase {
         mockMvc.perform(put("/core/api/v1/tipoInfracciones/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto))
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -86,7 +86,7 @@ class TipoInfraccionControllerTest extends ControllerTestBase {
         doNothing().when(tipoInfraccionService).delete(1);
 
         mockMvc.perform(delete("/core/api/v1/tipoInfracciones/1")
-                        .headers(authHeaders()))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isNoContent());
     }
 }

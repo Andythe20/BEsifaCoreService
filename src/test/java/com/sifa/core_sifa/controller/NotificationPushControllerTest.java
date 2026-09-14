@@ -52,8 +52,7 @@ class NotificationPushControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/notifications/push")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "admin@test.cl")
-                        .header("X-Auth-Roles", "USER_ADMIN"))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.messageId").value("msg-123"));
     }
@@ -74,8 +73,7 @@ class NotificationPushControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/notifications/push")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "admin@test.cl")
-                        .header("X-Auth-Roles", "USER_ADMIN"))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isBadRequest());
     }
 
@@ -93,8 +91,7 @@ class NotificationPushControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/notifications/push/all")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "admin@test.cl")
-                        .header("X-Auth-Roles", "USER_ADMIN"))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sent").value(5));
     }
@@ -114,8 +111,7 @@ class NotificationPushControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/notifications/push/platform")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "admin@test.cl")
-                        .header("X-Auth-Roles", "USER_ADMIN"))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.platform").value("ANDROID"));
     }
@@ -147,8 +143,7 @@ class NotificationPushControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/notifications/push/select")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "admin@test.cl")
-                        .header("X-Auth-Roles", "USER_ADMIN"))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sent").value(2));
     }
@@ -168,8 +163,7 @@ class NotificationPushControllerTest extends ControllerTestBase {
         mockMvc.perform(post("/core/api/v1/notifications/push/outdated")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request)
-                        .header("X-Auth-User", "admin@test.cl")
-                        .header("X-Auth-Roles", "USER_ADMIN"))
+                        .headers(authHeaders("USER_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentVersion").value("2.0.0"));
     }
