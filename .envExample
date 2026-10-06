@@ -12,8 +12,19 @@ DB_PASSWORD=password_de_tu_base_de_datos
 # ============================================
 # JWT
 # ============================================
-JWT_SECRET=llave_segura
+# Secreto y claims del token interno X-Auth-Identity que emite el gateway.
+# Deben coincidir con los de BEsifaAPIGateway y BEsifaAuthService.
 INTERNAL_JWT_SECRET=llave_segura
+INTERNAL_JWT_ISSUER=sifa-gateway
+INTERNAL_JWT_AUDIENCE=sifa-core
+
+# ============================================
+# CANAL INTERNO
+# ============================================
+# Firma que el gateway adjunta en X-Internal-Key y que ChannelKeyFilter exige
+# en toda petición. Idéntica en gateway, auth, core y plate.
+# Vacío = guardia desactivada.
+INTERNAL_CHANNEL_KEY=clave_compartida_con_los_servicios
 
 # ============================================
 # AWS S3 CONFIGURATION

@@ -12,7 +12,7 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     volumes:
       - core_mysql_data:/var/lib/mysql
     networks:
@@ -31,7 +31,9 @@ services:
     container_name: core-sifa
     restart: unless-stopped
     ports:
-      - "8083:8080"
+      # Publicado solo en loopback: en producción el tráfico llega por la IP
+      # privada (ver deploy_SIFA-CORE.sh), no por todas las interfaces.
+      - "127.0.0.1:8083:8080"
     environment:
       # Database
       DB_HOST: ${DB_HOST}
@@ -40,9 +42,13 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
 
-      # JWT
-      JWT_SECRET: ${JWT_SECRET}
+      # JWT (solo el token interno X-Auth-Identity; core no valida sesiones)
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET}
+      INTERNAL_JWT_ISSUER: ${INTERNAL_JWT_ISSUER}
+      INTERNAL_JWT_AUDIENCE: ${INTERNAL_JWT_AUDIENCE}
+
+      # Firma del canal interno exigida por ChannelKeyFilter
+      INTERNAL_CHANNEL_KEY: ${INTERNAL_CHANNEL_KEY:-}
 
       # App
       SERVER_PORT: 8080

@@ -52,9 +52,21 @@ Notas importantes:
 
 
 ## Arquitectura y Seguridad (API Gateway)
-Este microservicio no gestiona tokens JWT directamente. Asume que toda petición ha sido filtrada previamente por el API Gateway.
-Para consumir los endpoints de creación o búsqueda, el Gateway debe inyectar la cabecera `X-Auth-User` con el correo del usuario autorizado. 
-Si consumes esta API directamente desde Postman sin pasar por el Gateway, debes incluir manualmente el Header `X-Auth-User`.
+Este microservicio no gestiona tokens JWT directamente. Asume que toda petición ha sido filtrada previamente por el API Gateway y que
+viaja por el **canal interno** (cabecera `X-Internal-Key`).
+
+Para consumir los endpoints de creación o búsqueda, el Gateway se encarga de:
+
+1. Validar el JWT de sesión y regenerar `X-Auth-Identity` (token interno firmado, 60s) con los roles verificados — nunca confía en `X-Auth-User`/`X-Auth-Roles` planos del cliente.
+2. Inyectar la cabecera `X-Internal-Key` del canal interno (`INTERNAL_CHANNEL_KEY`).
+
+Cualquier petición que llegue **directa** a este microservicio sin pasar por el Gateway es rechazada:
+
+- Sin `X-Internal-Key` válida → `403` JSON (lo descarta `ChannelKeyFilter` antes de cualquier lógica).
+- Con `X-Internal-Key` válida pero sin `X-Auth-Identity` → `401` (no autenticada).
+
+No existe la opción de "consumir desde Postman inyectando `X-Auth-User`": esas cabeceras planas ya no otorgan acceso. La única vía de
+consumo es a través del Gateway; el `INTERNAL_CHANNEL_KEY` compartido es un secreto de despliegue y nunca debe distribuirse a clientes.
 
 
 ## Cómo ejecutar
