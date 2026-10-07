@@ -28,6 +28,20 @@ jobs:
               | "\(.key)<<EOF\n\(.value)\nEOF"
             ' >> $GITHUB_ENV
 
+      # Falla rápido si faltan secretos en Doppler: sin ellos Spring no puede
+      # resolver los placeholders y el contenedor moriría en el arranque.
+      - name: Verify required secrets
+        run: |
+          missing=0
+          for v in INTERNAL_JWT_SECRET INTERNAL_JWT_ISSUER INTERNAL_JWT_AUDIENCE \
+                   INTERNAL_CHANNEL_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Falta el secreto '$v' en Doppler"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -54,6 +68,14 @@ jobs:
 
           SERVER_PORT=8083
           SPRING_PROFILES_ACTIVE=prod
+          BCRYPT_STRENGTH=10
+
+          # Token interno X-Auth-Identity (validado por InternalJwtUtil)
+          INTERNAL_JWT_SECRET=${INTERNAL_JWT_SECRET}
+          INTERNAL_JWT_ISSUER=${INTERNAL_JWT_ISSUER}
+          INTERNAL_JWT_AUDIENCE=${INTERNAL_JWT_AUDIENCE}
+          # Firma del canal interno exigida por ChannelKeyFilter
+          INTERNAL_CHANNEL_KEY=${INTERNAL_CHANNEL_KEY}
 
           AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
           AWS_S3_REGION=${AWS_S3_REGION}
@@ -87,6 +109,8 @@ jobs:
 
               set -e
 
+              trap "rm -f /tmp/core.env" EXIT
+
               echo "Pulling latest image..."
               docker pull jarodsm/sifa-core:latest
 
@@ -98,11 +122,28 @@ jobs:
               docker run -d \
                 --name sifa-core \
                 --restart unless-stopped \
-                -p 80:8083 \
+                -p 10.0.2.30:80:8083 \
                 --env-file /tmp/core.env \
                 jarodsm/sifa-core:latest
 
-              echo "Deployment completed successfully."
+              echo "Verifying deployment..."
+              code=000
+              for i in $(seq 1 12); do
+                sleep 10
+                code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+                  http://10.0.2.30/ 2>/dev/null || true)
+                if [ -n "$code" ] && [ "$code" != "000" ]; then
+                  break
+                fi
+              done
+
+              if [ -z "$code" ] || [ "$code" = "000" ]; then
+                echo "::error::El servicio core no responde en 10.0.2.30:80"
+                docker logs --tail 100 sifa-core 2>&1 || true
+                exit 1
+              fi
+
+              echo "Core responde con HTTP $code"
 
           EOF
 
